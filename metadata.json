@@ -1,0 +1,5 @@
+{
+  "name": "Unlocked — Adaptive Learning Engine (Phase 1)",
+  "description": "An adaptive learning engine prototype featuring 8 learner archetypes, a 6-stage learning cycle, PDF text extraction, a knowledge-unit editor, and spaced-repetition review.",
+  "requestFramePermissions": []
+}

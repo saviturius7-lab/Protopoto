@@ -116,7 +116,7 @@ function renderEditor() {
     }
   }
   var nameEl = $("editorTopicName");
-  if (edTopicId == null) loadEditorDraft(state.activeTopicId);
+  if (edTopicId !== state.activeTopicId || !edDraft) loadEditorDraft(state.activeTopicId);
   if (nameEl && T) nameEl.textContent = "(" + T.title + ")";
 
   // tabs
@@ -130,10 +130,14 @@ function renderEditor() {
       b.classList.add("on");
       var tab = b.getAttribute("data-tab");
       $("edConcepts").classList.toggle("hidden", tab !== "concepts");
+      $("edRelationships").classList.toggle("hidden", tab !== "relationships");
       $("edQuiz").classList.toggle("hidden", tab !== "quiz");
+      $("edDetails").classList.toggle("hidden", tab !== "details");
       $("edSource").classList.toggle("hidden", tab !== "source");
       if (tab === "concepts") drawConceptEditor();
+      if (tab === "relationships") drawRelationshipsEditor();
       if (tab === "quiz") drawQuizEditor();
+      if (tab === "details") drawDetailsEditor();
       if (tab === "source") drawSourceEditor();
     });
   }
@@ -155,7 +159,9 @@ function renderEditor() {
   }
 
   drawConceptEditor();
+  drawRelationshipsEditor();
   drawQuizEditor();
+  drawDetailsEditor();
   drawSourceEditor();
 }
 
@@ -164,10 +170,12 @@ function loadEditorDraft(id) {
   edDraft = clone(getTopic(id));
   setTopic(id);
   var nameEl = $("editorTopicName");
-  if (nameEl) nameEl.textContent = "(" + edDraft.title + ")";
+  if (nameEl && edDraft) nameEl.textContent = "(" + edDraft.title + ")";
   if ($("editorTopicSelect")) $("editorTopicSelect").value = id;
   drawConceptEditor();
+  drawRelationshipsEditor();
   drawQuizEditor();
+  drawDetailsEditor();
   drawSourceEditor();
 }
 
@@ -250,6 +258,68 @@ function drawQuizEditor() {
   });
 }
 
+function drawRelationshipsEditor() {
+  var host = $("edRelationships"); if (!host || !edDraft) return;
+  host.innerHTML = "";
+  edDraft.relationships = edDraft.relationships || [];
+  var concepts = edDraft.concepts || [];
+  if (concepts.length < 2) {
+    host.innerHTML = '<div class="note">Add at least 2 concepts in the Concepts tab first, then connect them here to drive the Concept Map and Reconstruct views.</div>';
+    return;
+  }
+  var list = el("div", "ed-list");
+  function optionsHtml(selectedId) {
+    return concepts.map(function (c) {
+      return '<option value="' + esc(c.id) + '"' + (c.id === selectedId ? " selected" : "") + ">" + esc(c.name || c.id) + "</option>";
+    }).join("");
+  }
+  edDraft.relationships.forEach(function (r, i) {
+    var item = el("div", "ed-item");
+    item.innerHTML = '<div class="hd"><span class="nm">Link ' + (i + 1) + '</span><button class="btn ghost sm" data-rdel="' + i + '">Delete</button></div>' +
+      '<div class="ed-grid" style="margin-top:8px;grid-template-columns:1fr 1fr 1fr">' +
+      '<div><label>From concept</label><select data-rf="from" data-i="' + i + '">' + optionsHtml(r.from) + "</select></div>" +
+      '<div><label>Relationship</label><input type="text" data-rf="label" data-i="' + i + '" value="' + esc(r.label || "") + '"></div>' +
+      '<div><label>To concept</label><select data-rf="to" data-i="' + i + '">' + optionsHtml(r.to) + "</select></div>" +
+      "</div>";
+    list.appendChild(item);
+  });
+  var add = el("button", "btn secondary sm", "+ Add relationship");
+  add.style.marginTop = "12px";
+  add.addEventListener("click", function () {
+    edDraft.relationships.push({ from: concepts[0].id, to: concepts[1].id, label: "relates to" });
+    drawRelationshipsEditor();
+  });
+  host.appendChild(list);
+  host.appendChild(add);
+
+  list.querySelectorAll("[data-rf]").forEach(function (inp) {
+    var sync = function () {
+      var i = +inp.getAttribute("data-i"), f = inp.getAttribute("data-rf");
+      if (edDraft.relationships[i]) edDraft.relationships[i][f] = inp.value;
+    };
+    inp.addEventListener("input", sync);
+    inp.addEventListener("change", sync);
+  });
+  list.querySelectorAll("[data-rdel]").forEach(function (b) {
+    b.addEventListener("click", function () { edDraft.relationships.splice(+b.getAttribute("data-rdel"), 1); drawRelationshipsEditor(); });
+  });
+}
+
+function drawDetailsEditor() {
+  var host = $("edDetails"); if (!host || !edDraft) return;
+  host.innerHTML = "";
+  var box = el("div", "ed-item");
+  box.innerHTML =
+    '<label>Topic title</label><input type="text" id="edTitleInp" value="' + esc(edDraft.title || "") + '">' +
+    '<label>Summary</label><textarea id="edSummaryInp">' + esc(edDraft.summary || "") + "</textarea>" +
+    '<label>Classification tags (process, structure, concept, quant, procedure)</label>' +
+    '<input type="text" id="edClassInp" value="' + esc(edDraft.classification || "") + '">';
+  host.appendChild(box);
+  $("edTitleInp").addEventListener("input", function (e) { edDraft.title = e.target.value; });
+  $("edSummaryInp").addEventListener("input", function (e) { edDraft.summary = e.target.value; });
+  $("edClassInp").addEventListener("input", function (e) { edDraft.classification = e.target.value; });
+}
+
 function drawSourceEditor() {
   var host = $("edSource"); if (!host || !edDraft) return;
   host.innerHTML = "";
@@ -267,6 +337,7 @@ function saveEditor() {
   state.edits[edTopicId] = {
     title: edDraft.title,
     summary: edDraft.summary,
+    classification: edDraft.classification || "concept",
     concepts: edDraft.concepts,
     quiz: edDraft.quiz,
     relationships: edDraft.relationships || [],
@@ -277,6 +348,7 @@ function saveEditor() {
   if (p) { p.mastery = p.mastery || {}; edDraft.concepts.forEach(function (c) { if (p.mastery[c.id] == null) p.mastery[c.id] = 0; }); }
   store();
   T = getTopic(edTopicId);
+  if ($("editorTopicName") && T) $("editorTopicName").textContent = "(" + T.title + ")";
   toast("Saved. Journeys now use your edited knowledge.");
 }
 
@@ -319,9 +391,11 @@ function drawSrsProgress() {
   var due = reviewQueue.length;
   var learned = T.concepts.filter(function (c) { var s = state.srs[srsKey(T.id, c.id)]; return s && s.reps > 0; }).length;
   host.innerHTML =
-    '<span class="pill-stat">Total concepts: <strong>' + total + "</strong></span>" +
-    '<span class="pill-stat due">Due now: <strong>' + due + "</strong></span>" +
-    '<span class="pill-stat">Learned: <strong>' + learned + "</strong></span>";
+    '<span>Total concepts: <strong>' + total + "</strong></span>" +
+    '<span aria-hidden="true">·</span>' +
+    '<span>Due now: <strong>' + due + "</strong></span>" +
+    '<span aria-hidden="true">·</span>' +
+    '<span>Learned: <strong>' + learned + "</strong></span>";
 }
 
 function drawSrsCard() {
@@ -341,7 +415,7 @@ function drawSrsCard() {
   front.textContent = c ? c.name : "Card";
   front.className = "front";
   back.textContent = c ? c.def : "";
-  back.className = "back";
+  back.className = "back hidden";
 
   var reveal = el("button", "btn", "Show answer");
   reveal.addEventListener("click", function () {
@@ -353,7 +427,7 @@ function drawSrsCard() {
 
   function gradeButtons() {
     var grades = [
-      { g: 0, label: "Again", cls: "btn bad" },
+      { g: 0, label: "Again (now)", cls: "btn bad" },
       { g: 1, label: "Hard", cls: "btn warn" },
       { g: 2, label: "Good", cls: "btn good" },
       { g: 3, label: "Easy", cls: "btn" }
@@ -363,10 +437,14 @@ function drawSrsCard() {
       b.addEventListener("click", function () {
         srsReview(srsKey(T.id, cid), gr.g);
         reviewQueue.shift();
+        if (gr.g === 0) {
+          reviewQueue.push(cid);
+        } else {
+          addXP(2);
+        }
         drawSrsProgress();
         drawSrsCard();
         drawSrsSchedule();
-        if (gr.g === 0) { /* Again keeps it due today; it will reappear next render */ }
       });
       actions.appendChild(b);
     });
@@ -394,7 +472,23 @@ function init() {
   restore();
   setTopic(state.activeTopicId);
   var xp = $("xpVal"); if (xp) xp.textContent = state.xp;
-  if (window.mermaid) { try { mermaid.initialize({ startOnLoad: false, theme: "dark" }); } catch (e) {} }
+  if (window.mermaid) {
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        themeVariables: {
+          background: "#F2ECD5",
+          primaryColor: "#FCEB9C",
+          primaryTextColor: "#2C261F",
+          primaryBorderColor: "#2C261F",
+          lineColor: "#2C261F",
+          secondaryColor: "#DCE9E6",
+          tertiaryColor: "#DFEAC6"
+        }
+      });
+    } catch (e) {}
+  }
 
   var navBtns = document.querySelectorAll("#nav button");
   for (var i = 0; i < navBtns.length; i++) {
@@ -441,7 +535,8 @@ function init() {
   if (libUp) libUp.addEventListener("click", function () { showScreen("upload"); });
 
   renderHome();
-  showScreen(state.archetype ? "quest" : "home");
+  var fromAssessment = typeof window !== "undefined" && window.location.search.indexOf("from=assessment") > -1;
+  showScreen(fromAssessment || !state.archetype ? "home" : "quest");
 }
 
 document.addEventListener("DOMContentLoaded", init);

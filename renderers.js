@@ -9,29 +9,43 @@ RENDERERS.summary = function () {
   var grid = el("div", "grid two"); grid.style.marginTop = "14px";
   (T.concepts || []).slice(0, 6).forEach(function (c) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:13px 15px";
+    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:13px 15px";
     d.innerHTML = "<strong>" + esc(c.name) + '</strong><div class="small muted">' + esc(c.def) + "</div>";
     grid.appendChild(d);
   });
   w.appendChild(grid);
+  if (T.misconceptions && T.misconceptions.length) {
+    var misc = el("div", "viz"); misc.style.marginTop = "16px";
+    misc.innerHTML = "<h4>Common misconceptions to watch out for</h4>";
+    T.misconceptions.forEach(function (m) {
+      var row = el("div", "ed-item"); row.style.marginTop = "8px";
+      row.innerHTML = '<div class="small" style="color:var(--bad)"><strong>Myth:</strong> ' + esc(m.wrong) + '</div>' +
+        '<div class="small" style="color:var(--good);margin-top:4px"><strong>Reality:</strong> ' + esc(m.right) + "</div>";
+      misc.appendChild(row);
+    });
+    w.appendChild(misc);
+  }
   return w;
 };
 
 RENDERERS.diagram = function () {
   var w = el("div");
   var viz = el("div", "viz");
+  var rep = classifyContent(T);
   viz.innerHTML = "<h4>Understand - same knowledge, different representations</h4>" +
-    "<p class='small muted' style='margin-top:0'>Content decides the representation; you can switch between them. This shows knowledge richly without redundant copies.</p>";
+    "<p class='small muted' style='margin-top:0'>Content classification (<strong>" + esc(rep.classification.join(", ")) + "</strong>) recommends: <strong>" + esc(rep.representationLabel) + "</strong>. Switch tabs any time.</p>";
   var tabs = el("div", "tabs");
   var panel = el("div");
   var defs = [
     { id: "diagram", label: "Diagram", build: buildDiagram },
+    { id: "process", label: "Flowchart", build: buildProcess },
     { id: "story", label: "Story / timeline", build: buildStory },
     { id: "graph", label: "Graph", build: buildGraph }
   ];
+  var defaultId = defs.some(function (d) { return d.id === rep.representation; }) ? rep.representation : "diagram";
   var built = {};
-  defs.forEach(function (d, i) {
-    var b = el("button", "tab" + (i === 0 ? " on" : ""), d.label);
+  defs.forEach(function (d) {
+    var b = el("button", "tab" + (d.id === defaultId ? " on" : ""), d.label);
     b.addEventListener("click", function () {
       var btns = tabs.querySelectorAll(".tab");
       for (var k = 0; k < btns.length; k++) btns[k].classList.remove("on");
@@ -43,7 +57,9 @@ RENDERERS.diagram = function () {
     tabs.appendChild(b);
   });
   viz.appendChild(tabs); viz.appendChild(panel);
-  var first = defs[0].build(); built.diagram = first; panel.appendChild(first);
+  var initial = defs.find(function (d) { return d.id === defaultId; }) || defs[0];
+  built[initial.id] = initial.build();
+  panel.appendChild(built[initial.id]);
   w.appendChild(viz);
   return w;
 };
@@ -53,67 +69,129 @@ function buildDiagram() {
   var dg = T.diagram || { inputs: [], outputs: [], center: "Process", centerSub: "" };
   var W = 640, H = 300, cx = 320, cy = 150;
   var inp = dg.inputs || [], outp = dg.outputs || [];
-  var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
-  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6c8cff"/></marker>' +
-    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#3fe0c0"/></marker></defs>';
-  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="120" ry="80" fill="#12261a" stroke="#3fe0c0" stroke-width="2"/>';
-  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#e9edf7" font-size="15" font-weight="700">' + esc(dg.center || "") + "</text>";
-  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#93a0c2" font-size="11">' + esc(dg.centerSub) + "</text>";
+  var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit" style="background:var(--surface-2);border:2px solid var(--border);border-radius:12px">';
+  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2C261F"/></marker>' +
+    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2C261F"/></marker></defs>';
+  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#DFEAC6" stroke="#2C261F" stroke-width="3"/>';
+  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#2C261F" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
+  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#57534A" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
   inp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, inp.length));
-    svg += '<line x1="90" y1="' + y + '" x2="' + (cx - 120) + '" y2="' + y + '" stroke="#6c8cff" stroke-width="2" marker-end="url(#ar)"/>';
-    svg += '<text x="84" y="' + (y - 6) + '" text-anchor="end" fill="' + (it.color || "#ffcf5c") + '" font-size="12">' + esc(it.label) + "</text>";
+    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#2C261F" stroke-width="2.5" marker-end="url(#ar)"/>';
+    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#2C261F" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   outp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, outp.length));
-    svg += '<line x1="' + (cx + 120) + '" y1="' + y + '" x2="' + (W - 90) + '" y2="' + y + '" stroke="#3fe0c0" stroke-width="2" marker-end="url(#ar2)"/>';
-    svg += '<text x="' + (W - 84) + '" y="' + (y - 6) + '" fill="' + (it.color || "#46d68a") + '" font-size="12">' + esc(it.label) + "</text>";
+    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#2C261F" stroke-width="2.5" marker-end="url(#ar2)"/>';
+    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#2C261F" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   svg += "</svg>";
   box.innerHTML = svg;
-  var cap = el("p", "small muted", "Labelled diagram: parts, structure and spatial relationships make a visual the right representation (Section 4 rule).");
+  var cap = el("p", "small muted", "Labelled diagram: parts, structure and spatial relationships.");
+  cap.style.marginTop = "8px";
   cap.style.marginBottom = "0";
   box.appendChild(cap);
   return box;
 }
 
+function initMermaidOoo() {
+  if (!window.mermaid) return;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      background: "#F2ECD5",
+      primaryColor: "#FCEB9C",
+      primaryTextColor: "#2C261F",
+      primaryBorderColor: "#2C261F",
+      lineColor: "#2C261F",
+      secondaryColor: "#DCE9E6",
+      tertiaryColor: "#DFEAC6",
+      fontFamily: "Plus Jakarta Sans, sans-serif"
+    }
+  });
+}
+
+function buildProcess() {
+  var box = el("div");
+  var steps = T.process || [];
+  if (!steps.length) {
+    box.innerHTML = '<p class="small muted">No process steps defined yet for this topic.</p>';
+    return box;
+  }
+  var md = el("div"); md.className = "mermaid";
+  md.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px;overflow:auto";
+  var lines = ["flowchart LR"];
+  steps.forEach(function (s, i) {
+    var label = (s.t || ("Step " + (i + 1))).replace(/["[\]()]/g, "");
+    lines.push("  S" + i + '["' + (i + 1) + ". " + label + '"]');
+    if (i > 0) lines.push("  S" + (i - 1) + " --> S" + i);
+  });
+  md.textContent = lines.join("\n");
+  box.appendChild(md);
+  var list = el("div", "grid"); list.style.marginTop = "14px";
+  steps.forEach(function (s, i) {
+    var d = el("div", "ed-item");
+    d.innerHTML = "<strong>" + (i + 1) + ". " + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div>";
+    list.appendChild(d);
+  });
+  box.appendChild(list);
+  setTimeout(function () { try { initMermaidOoo(); if (window.mermaid) mermaid.run({ nodes: [md] }); } catch (e) {} }, 40);
+  return box;
+}
+
 function buildStory() {
   var box = el("div");
-  var md = el("div"); md.className = "mermaid";
   var scenes = (T.story && T.story.scenes) ? T.story.scenes : [];
+  if (!scenes.length) {
+    box.innerHTML = '<p class="small muted">No story scenes defined yet for this topic.</p>';
+    return box;
+  }
+  var md = el("div"); md.className = "mermaid";
+  md.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px;overflow:auto";
   var lines = ["timeline"];
-  scenes.forEach(function (s) { lines.push("    " + s.t + " : " + s.d); });
+  scenes.forEach(function (s) {
+    var tClean = String(s.t || "").replace(/:/g, " -");
+    var dClean = String(s.d || "").replace(/:/g, " -");
+    lines.push("    " + tClean + " : " + dClean);
+  });
   md.textContent = lines.join("\n");
   box.appendChild(md);
   var list = el("div", "grid two"); list.style.marginTop = "16px";
   scenes.forEach(function (s, i) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:12px 14px";
-    d.innerHTML = '<div class="tag now" style="margin-bottom:6px">Scene ' + (i + 1) + "</div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div>";
+    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 14px";
+    d.innerHTML = '<div class="status-text now" style="margin-bottom:4px">Scene ' + (i + 1) + "</div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div>";
     list.appendChild(d);
   });
   box.appendChild(list);
-  setTimeout(function () { try { if (window.mermaid) { mermaid.initialize({ startOnLoad: false, theme: "dark" }); mermaid.run({ querySelector: ".mermaid" }); } } catch (e) {} }, 40);
+  setTimeout(function () { try { initMermaidOoo(); if (window.mermaid) mermaid.run({ nodes: [md] }); } catch (e) {} }, 40);
   return box;
 }
 
 function buildGraph() {
   var box = el("div");
+  var g = T.graph || { labels: [], series: [] };
+  if (!g.labels || !g.labels.length || !g.series || !g.series.length) {
+    box.innerHTML = '<p class="small muted">No quantitative graph series defined for this topic yet.</p>';
+    return box;
+  }
   var cbox = el("div", "chart-box");
   var canvas = el("canvas");
   cbox.appendChild(canvas); box.appendChild(cbox);
   setTimeout(function () {
     try {
       if (!window.Chart) { canvas.outerHTML = '<p class="small muted">Chart library unavailable offline.</p>'; return; }
-      var g = T.graph || { labels: [], series: [] };
+      var palette = ["#558E9B", "#C97A2B", "#7EA85B"];
       new Chart(canvas, {
         type: "line",
-        data: { labels: g.labels, datasets: (g.series || []).map(function (s) {
-          return { label: s.name, data: s.data, borderColor: s.color, backgroundColor: "transparent", borderDash: s.dashed ? [6, 4] : [], tension: 0.35, pointRadius: 3 };
+        data: { labels: g.labels, datasets: (g.series || []).map(function (s, idx) {
+          var col = palette[idx % palette.length];
+          return { label: s.name, data: s.data, borderColor: col, backgroundColor: "transparent", borderDash: s.dashed ? [6, 4] : [], borderWidth: 3, tension: 0.35, pointRadius: 4, pointBackgroundColor: col };
         }) },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#c6cdea" } } },
-          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#93a0c2" }, ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } },
-            y: { title: { display: true, text: g.ylabel || "", color: "#93a0c2" }, ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } },
+          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#2C261F", font: { weight: "700" } }, ticks: { color: "#57534A" }, grid: { color: "rgba(44,38,31,.08)" } },
+            y: { title: { display: true, text: g.ylabel || "", color: "#2C261F", font: { weight: "700" } }, ticks: { color: "#57534A" }, grid: { color: "rgba(44,38,31,.08)" } } } }
       });
     } catch (e) {}
   }, 30);
@@ -138,13 +216,13 @@ RENDERERS.conceptmap = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", color: { background: "#1c2338", border: "#6c8cff" }, font: { color: "#e9edf7" } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#3fe0c0" }, font: { color: "#93a0c2", size: 11 } }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#FCEB9C", border: "#2C261F", highlight: { background: "#558E9B", border: "#2C261F" } }, font: { color: "#2C261F", face: "Plus Jakarta Sans", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#2C261F" }, font: { color: "#57534A", size: 11, background: "#F2ECD5" }, width: 2 }; }));
         w._net = new vis.Network(container, { nodes: nodes, edges: edges }, { layout: { improvedLayout: true }, physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true, tooltipDelay: 120 } });
         return;
       } catch (e) {}
     }
-    container.innerHTML = '<p class="small muted">Map library unavailable offline. Connections:<br>' +
+    container.innerHTML = '<p class="small muted" style="padding:12px">Map library unavailable offline. Connections:<br>' +
       rels.map(function (r) { return esc(r.from) + " -> " + esc(r.label) + " -> " + esc(r.to); }).join("<br>") + "</p>";
   }, 30);
   return w;
@@ -155,9 +233,9 @@ RENDERERS.reconstruct = function () {
   var viz = el("div", "viz");
   viz.innerHTML = "<h4>Reconstruct - rebuild the map from memory</h4>" +
     "<p class='small muted' style='margin-top:0'>Concept mapping is strongest when you actively construct the connections. Hide the labels, rebuild the links, then reveal to check.</p>";
-  var container = el("div"); container.style.cssText = "width:100%;height:340px";
+  var container = el("div"); container.style.cssText = "width:100%;height:340px;background:var(--surface-2);border:2px solid var(--border);border-radius:12px";
   viz.appendChild(container);
-  var check = el("button", "btn sm", "Reveal map to check"); check.style.marginTop = "12px";
+  var check = el("button", "btn sm", "Hide labels to rebuild"); check.style.marginTop = "12px";
   viz.appendChild(check);
   var hidden = el("div", "small"); hidden.style.color = "var(--warn)"; hidden.style.marginTop = "8px";
   viz.appendChild(hidden);
@@ -166,14 +244,14 @@ RENDERERS.reconstruct = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: labels ? c.name : "?", shape: "box", color: { background: "#1c2338", border: labels ? "#6c8cff" : "#ff9a6b" }, font: { color: "#e9edf7" } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "", arrows: "to", color: { color: "#3fe0c0" }, font: { color: "#93a0c2", size: 11 } }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: labels ? c.name : "?", shape: "box", borderWidth: 2, color: { background: labels ? "#DCE9E6" : "#F3D8D5", border: "#2C261F" }, font: { color: "#2C261F", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "", arrows: "to", color: { color: "#2C261F" }, font: { color: "#57534A", size: 11, background: "#F2ECD5" }, width: 2 }; }));
         if (container._net) container._net.destroy();
         container._net = new vis.Network(container, { nodes: nodes, edges: edges }, { physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true } });
         return;
       } catch (e) {}
     }
-    container.innerHTML = '<p class="small muted">Map library unavailable offline. Rebuild these from memory:<br>' +
+    container.innerHTML = '<p class="small muted" style="padding:12px">Map library unavailable offline. Rebuild these from memory:<br>' +
       rels.map(function (r) { return esc(r.from) + " -> " + esc(r.label) + " -> " + esc(r.to); }).join("<br>") + "</p>";
   }
   build(true);
@@ -189,11 +267,11 @@ RENDERERS.reconstruct = function () {
 RENDERERS.concepts = function () {
   var w = el("div");
   var viz = el("div", "viz");
-  viz.innerHTML = "<h4>Explore each concept</h4";
+  viz.innerHTML = "<h4>Explore each concept</h4>";
   var list = el("div", "grid two"); list.style.marginTop = "8px";
   (T.concepts || []).forEach(function (c) {
     var d = el("details");
-    d.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:12px 14px";
+    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 14px";
     d.innerHTML = "<summary style='cursor:pointer;font-weight:700'>" + esc(c.name) + '</summary><div class="small muted" style="margin-top:8px">' + esc(c.def) + "</div>";
     list.appendChild(d);
   });
@@ -221,7 +299,7 @@ RENDERERS.retrieve = function () {
   var cards = el("div", "grid two"); cards.style.marginTop = "10px";
   (T.concepts || []).slice(0, 6).forEach(function (c) {
     var card = el("div");
-    card.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;cursor:pointer;min-height:96px";
+    card.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;min-height:96px";
     card.innerHTML = "<strong>" + esc(c.name) + '</strong><div class="small muted" style="margin-top:8px">Click to reveal definition</div><div class="small" style="margin-top:8px;display:none">' + esc(c.def) + "</div>";
     card.addEventListener("click", function () {
       var rev = card.querySelectorAll(".small")[1], hint = card.querySelector(".small.muted");
@@ -290,8 +368,8 @@ RENDERERS.worked = function () {
   var list = el("div", "grid"); list.style.marginTop = "8px";
   (T.worked || []).forEach(function (s, i) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:12px 15px;display:flex;gap:12px;align-items:flex-start";
-    d.innerHTML = '<div style="flex:0 0 26px;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:#0e1426;border:1px solid var(--border);font-weight:800;font-size:.8rem">' + (i + 1) + "</div>" +
+    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 15px;display:flex;gap:12px;align-items:flex-start";
+    d.innerHTML = '<div style="flex:0 0 28px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--gold);border:2px solid var(--border);font-weight:700;font-size:.82rem;color:var(--ink)">' + (i + 1) + "</div>" +
       "<div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div></div>";
     list.appendChild(d);
   });
@@ -307,16 +385,16 @@ RENDERERS.guide = function () {
   viz.appendChild(host);
   (T.guide || []).forEach(function (it) {
     var box = el("div");
-    box.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:12px 15px";
-    box.innerHTML = '<div style="font-weight:600;margin-bottom:8px">' + esc(it.q) + "</div>";
+    box.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 15px";
+    box.innerHTML = '<div style="font-weight:700;margin-bottom:8px">' + esc(it.q) + "</div>";
     var inp = el("input"); inp.type = "text"; inp.placeholder = "Your answer"; box.appendChild(inp);
-    var btn = el("button", "btn ghost sm", "Check"); btn.style.marginTop = "8px";
+    var btn = el("button", "btn secondary sm", "Check"); btn.style.marginTop = "8px";
     var fb = el("div", "small"); fb.style.marginTop = "8px";
     box.appendChild(btn); box.appendChild(fb);
     btn.addEventListener("click", function () {
       var norm = function (s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); };
-      if (norm(inp.value) === norm(it.a)) { fb.innerHTML = "<span style='color:var(--good)'>Correct.</span>"; bumpMastery(10); }
-      else { fb.innerHTML = "<span style='color:var(--warn)'>Hint: " + esc(it.hint || "") + "</span>"; }
+      if (norm(inp.value) === norm(it.a)) { fb.innerHTML = "<span style='color:var(--good);font-weight:700'>Correct.</span>"; bumpMastery(10); }
+      else { fb.innerHTML = "<span style='color:var(--warn);font-weight:700'>Hint: " + esc(it.hint || "") + "</span>"; }
     });
     host.appendChild(box);
   });
@@ -330,11 +408,11 @@ RENDERERS.hint = function () {
   var h = T.hint || { question: "Attempt the question, then reveal a hint if stuck.", hints: [], keywords: [], answerHtml: "" };
   viz.innerHTML = "<h4>Hint system - help when you are stuck</h4><p class='small muted' style='margin-top:0'>Attempt first, then reveal a hint only if needed. The aim is independence.</p>";
   var box = el("div");
-  box.style.cssText = "background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:14px 16px";
-  box.innerHTML = '<div style="font-weight:600">' + esc(h.question) + "</div>";
+  box.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:14px 16px";
+  box.innerHTML = '<div style="font-weight:700">' + esc(h.question) + "</div>";
   var ta = el("textarea"); ta.placeholder = "Your explanation ..."; ta.style.marginTop = "10px"; box.appendChild(ta);
   var row = el("div", "row"); row.style.marginTop = "10px";
-  var hintBtn = el("button", "btn ghost sm", "Reveal a hint");
+  var hintBtn = el("button", "btn secondary sm", "Reveal a hint");
   var checkBtn = el("button", "btn sm", "Check answer");
   row.appendChild(hintBtn); row.appendChild(checkBtn); box.appendChild(row);
   var fb = el("div"); fb.style.marginTop = "10px"; box.appendChild(fb);
@@ -381,7 +459,7 @@ RENDERERS.hook = function () {
   var w = el("div");
   var viz = el("div", "viz");
   var hk = T.hook || { prompt: "What do you notice? What do you wonder?" };
-  viz.innerHTML = "<h4>Curiosity hook</h4><p style='font-size:1.05rem;color:#dfe6ff'>" + esc(hk.prompt) + "</p>";
+  viz.innerHTML = "<h4>Curiosity hook</h4><p style='font-size:1.05rem;color:var(--ink);font-weight:600'>" + esc(hk.prompt) + "</p>";
   var ta = el("textarea"); ta.placeholder = "My initial idea ..."; viz.appendChild(ta);
   w.appendChild(viz);
   return w;
@@ -454,8 +532,8 @@ RENDERERS.mastery = function () {
     try {
       if (window.Chart) new Chart(canvas, {
         type: "bar",
-        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#46d68a" : "#ffb454"; }) }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#93a0c2", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(255,255,255,.05)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } } } }
+        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#7EA85B" : "#F2B44B"; }), borderColor: "#2C261F", borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#2C261F", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } }
       });
     } catch (e) {}
     (T.concepts || []).forEach(function (c) {
@@ -478,8 +556,8 @@ RENDERERS.plan = function () {
   var ranked = (T.concepts || []).slice().sort(function (a, b) { return (p.mastery[a.id] || 0) - (p.mastery[b.id] || 0); });
   var perDay = Math.max(1, Math.ceil(ranked.length / days));
   var header = el("div", "note");
-  header.innerHTML = "<strong>Target:</strong> " + esc(plan.target) + " - <strong>Deadline:</strong> " + days + " day" + (days === 1 ? "" : "s") +
-    " - <strong>Priority:</strong> weakest concepts first. Exam prep should still build conceptual understanding and transfer.";
+  header.innerHTML = "<strong>Target:</strong> " + esc(plan.target) + " · <strong>Deadline:</strong> " + days + " day" + (days === 1 ? "" : "s") +
+    " · <strong>Priority:</strong> weakest concepts first.";
   viz.appendChild(header);
   var list = el("div", "grid"); list.style.marginTop = "6px";
   ranked.forEach(function (c, i) {
@@ -488,13 +566,13 @@ RENDERERS.plan = function () {
     var priority = m < 40 ? "High" : (m < 70 ? "Medium" : "Low");
     var pColor = priority === "High" ? "var(--bad)" : (priority === "Medium" ? "var(--warn)" : "var(--good)");
     var row = el("div", "mission"); row.style.padding = "12px 14px";
-    row.innerHTML = '<div class="num" style="flex:0 0 54px;width:54px;font-size:.76rem">Day ' + day + "</div>" +
-      '<div class="body"><div class="ttl">' + esc(c.name) + ' <span class="small muted">-</span></div>' +
-      '<div class="st">Priority: <strong style="color:' + pColor + '">' + priority + "</strong> - activity: explanation, retrieval, application</div></div>";
+    row.innerHTML = '<div class="num" style="flex:0 0 58px;width:58px;font-size:.76rem">Day ' + day + "</div>" +
+      '<div class="body"><div class="ttl">' + esc(c.name) + '</div>' +
+      '<div class="st">Priority: <strong style="color:' + pColor + '">' + priority + "</strong> · activity: explanation, retrieval, application</div></div>";
     list.appendChild(row);
   });
   viz.appendChild(list);
-  var btn = el("button", "btn sm", "Add a revision quest (spaced)"); btn.style.marginTop = "14px";
+  var btn = el("button", "btn sm", "Schedule spaced review"); btn.style.marginTop = "14px";
   btn.addEventListener("click", function () { toast("Revision quest scheduled: revisit weakest concepts in 1, 3 and 7 days."); addXP(15); btn.remove(); });
   viz.appendChild(btn);
   w.appendChild(viz);
@@ -524,21 +602,23 @@ function buildGame() {
   var g = T.game || { title: "Interactive simulation", goal: "Adjust the variables.", kind: "limiting", target: 0, unit: "score", sliders: [] };
   viz.innerHTML = "<h4>Experiment - " + esc(g.title) + "</h4><p class='small muted' style='margin-top:0'>" + esc(g.goal) + "</p>";
   var canvas = el("canvas");
-  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#0e1730,#0b1120);border-radius:10px;border:1px solid var(--border)";
+  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#DCE9E6,#F4EED9);border-radius:12px;border:2px solid var(--border)";
   viz.appendChild(canvas);
   var sliders = el("div");
   sliders.style.cssText = "display:grid;gap:10px;margin-top:12px";
   (g.sliders || []).forEach(function (s) {
     var row = el("div");
-    row.style.cssText = "display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;font-size:.86rem";
-    row.innerHTML = "<span>" + esc(s.label) + '</span><input type="range" min="0" max="100" value="50" data-id="' + esc(s.id) + '"><span class="val" data-val="' + esc(s.id) + '">50</span>';
+    row.style.cssText = "display:grid;grid-template-columns:120px 1fr 56px;gap:10px;align-items:center;font-size:.88rem;font-weight:600";
+    row.innerHTML = "<span>" + esc(s.label) + '</span><input type="range" min="0" max="100" value="50" data-id="' + esc(s.id) + '"><span class="val" style="font-family:var(--font-mono);text-align:right" data-val="' + esc(s.id) + '">50</span>';
     sliders.appendChild(row);
   });
   viz.appendChild(sliders);
-  var rowBtns = el("div", "row"); rowBtns.style.marginTop = "14px";
-  var roundLbl = el("span", "pill", "Round 1 / 5");
+  var liveNote = el("div", "small"); liveNote.style.cssText = "margin-top:10px;font-weight:600;color:var(--ink)";
+  viz.appendChild(liveNote);
+  var rowBtns = el("div", "row"); rowBtns.style.marginTop = "12px";
+  var roundLbl = el("span", "meta-line", "Round 1 / 5"); roundLbl.style.margin = "0";
   var runBtn = el("button", "btn sm", "Run round");
-  var resetBtn = el("button", "btn ghost sm", "Reset");
+  var resetBtn = el("button", "btn secondary sm", "Reset");
   rowBtns.appendChild(roundLbl); rowBtns.appendChild(runBtn); rowBtns.appendChild(resetBtn);
   viz.appendChild(rowBtns);
   var fb = el("div"); fb.style.marginTop = "12px"; viz.appendChild(fb);
@@ -569,42 +649,46 @@ function buildGame() {
     return "Limiting input is the lowest slider (" + Math.round(min) + "). Raise the lowest to grow faster.";
   }
   function draw() {
+    var v = vals();
+    liveNote.textContent = tip(v);
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
     var W = canvas.width = Math.max(320, canvas.clientWidth * 2), H = canvas.height = 300 * 2;
     ctx.setTransform(2, 0, 0, 2, 0, 0);
     var w = W / 2, h = H / 2;
     ctx.clearRect(0, 0, w, h);
-    var v = vals();
     var sc = score(v);
     var slidersArr = g.sliders || [];
-    var barW = Math.min(70, (w - 60) / Math.max(1, slidersArr.length) - 12);
+    var barW = Math.min(72, (w - 60) / Math.max(1, slidersArr.length) - 12);
+    var barColors = ["#558E9B", "#7EA85B", "#F2B44B"];
     slidersArr.forEach(function (s, i) {
       var x = 24 + i * (barW + 18), y = 60, bh = 150;
       var val = v[s.id] || 0;
-      ctx.fillStyle = "#1c2338"; ctx.fillRect(x, y, barW, bh);
-      ctx.fillStyle = "#6c8cff"; ctx.fillRect(x, y + bh * (1 - val / 100), barW, bh * (val / 100));
+      ctx.fillStyle = "#FCF9EE"; ctx.fillRect(x, y, barW, bh);
+      ctx.fillStyle = barColors[i % barColors.length]; ctx.fillRect(x, y + bh * (1 - val / 100), barW, bh * (val / 100));
+      ctx.strokeStyle = "#2C261F"; ctx.lineWidth = 2; ctx.strokeRect(x, y, barW, bh);
       if (s.id === "price" && g.target != null) {
         var ty = y + bh * (1 - g.target / 100);
-        ctx.fillStyle = "#ffcf5c"; ctx.fillRect(x - 4, ty, barW + 8, 3);
+        ctx.fillStyle = "#C45158"; ctx.fillRect(x - 4, ty, barW + 8, 4);
       }
-      ctx.fillStyle = "#c6cdea"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#2C261F"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
       ctx.fillText(s.label, x + barW / 2, y - 8);
       ctx.fillText(Math.round(val), x + barW / 2, y + bh + 16);
     });
-    ctx.fillStyle = "#e9edf7"; ctx.font = "700 34px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(sc + "%", w / 2, h - 40);
-    ctx.fillStyle = "#93a0c2"; ctx.font = "12px sans-serif";
-    ctx.fillText(g.unit || "score", w / 2, h - 20);
-    ctx.fillStyle = "#1c2338"; ctx.fillRect(24, 24, w - 48, 10);
-    ctx.fillStyle = "#3fe0c0"; ctx.fillRect(24, 24, (w - 48) * Math.min(1, growth / 100), 10);
-    ctx.fillStyle = "#93a0c2"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
-    ctx.fillText("Progress", 24, 18);
+    ctx.fillStyle = "#2C261F"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(sc + "%", w / 2, h - 38);
+    ctx.fillStyle = "#57534A"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
+    ctx.fillText(g.unit || "score", w / 2, h - 18);
+    ctx.fillStyle = "#FCF9EE"; ctx.fillRect(24, 24, w - 48, 12);
+    ctx.fillStyle = "#7EA85B"; ctx.fillRect(24, 24, (w - 48) * Math.min(1, growth / 100), 12);
+    ctx.strokeStyle = "#2C261F"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, w - 48, 12);
+    ctx.fillStyle = "#2C261F"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
+    ctx.fillText("Session Progress", 24, 18);
   }
 
   sliders.querySelectorAll("input[type=range]").forEach(function (inp) {
     inp.addEventListener("input", function () {
-      var id = inp.getAttribute("data-val");
+      var id = inp.getAttribute("data-id");
       var span = sliders.querySelector('[data-val="' + id + '"]');
       if (span) span.textContent = inp.value;
       draw();
@@ -629,7 +713,11 @@ function buildGame() {
   });
   resetBtn.addEventListener("click", function () {
     growth = 0; round = 1; runBtn.disabled = false; roundLbl.textContent = "Round 1 / 5";
-    sliders.querySelectorAll("input[type=range]").forEach(function (inp) { inp.value = 50; var span = sliders.querySelector('[data-val="' + inp.getAttribute("data-val") + '"]'); if (span) span.textContent = "50"; });
+    sliders.querySelectorAll("input[type=range]").forEach(function (inp) {
+      inp.value = 50;
+      var span = sliders.querySelector('[data-val="' + inp.getAttribute("data-id") + '"]');
+      if (span) span.textContent = "50";
+    });
     fb.innerHTML = ""; draw();
   });
 

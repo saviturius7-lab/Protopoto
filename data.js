@@ -6,6 +6,7 @@ var SAMPLE_TOPICS = [
 {
   id: "photosynthesis",
   title: "Photosynthesis",
+  image: "/src/assets/images/topic_photosynthesis_1795445537606.jpg",
   summary: "How plants convert light energy, water and carbon dioxide into glucose and oxygen.",
   classification: "process, structure, quant",
   concepts: [
@@ -42,8 +43,8 @@ var SAMPLE_TOPICS = [
   graph: {
     labels: ["0", "20", "40", "60", "80", "100"],
     series: [
-      { name: "Photosynthesis rate", color: "#3fe0c0", data: [0, 14, 30, 46, 58, 62] },
-      { name: "Light intensity", color: "#ffcf5c", data: [0, 20, 40, 60, 80, 100], dashed: true }
+      { name: "Photosynthesis rate", color: "#7EA85B", data: [0, 14, 30, 46, 58, 62] },
+      { name: "Light intensity", color: "#F2B44B", data: [0, 20, 40, 60, 80, 100], dashed: true }
     ],
     xlabel: "Light intensity (%)", ylabel: "Rate (relative)"
   },
@@ -59,8 +60,8 @@ var SAMPLE_TOPICS = [
     ]
   },
   diagram: {
-    inputs: [{ label: "Light", color: "#ffcf5c" }, { label: "Water", color: "#9fd0ff" }, { label: "CO2", color: "#9fd0ff" }],
-    outputs: [{ label: "Glucose", color: "#46d68a" }, { label: "Oxygen", color: "#46d68a" }],
+    inputs: [{ label: "Light", color: "#F2B44B" }, { label: "Water", color: "#558E9B" }, { label: "CO2", color: "#558E9B" }],
+    outputs: [{ label: "Glucose", color: "#7EA85B" }, { label: "Oxygen", color: "#7EA85B" }],
     center: "Chloroplast", centerSub: "light reactions to Calvin cycle"
   },
   worked: [
@@ -122,6 +123,7 @@ var SAMPLE_TOPICS = [
 {
   id: "newton2",
   title: "Newton's Second Law",
+  image: "/src/assets/images/topic_newton2_1795445538106.jpg",
   summary: "Force, mass and acceleration are linked by F = m x a. Net force determines acceleration.",
   classification: "quant, procedure",
   concepts: [
@@ -149,8 +151,8 @@ var SAMPLE_TOPICS = [
   graph: {
     labels: ["0", "2", "4", "6", "8", "10"],
     series: [
-      { name: "Acceleration (m/s2)", color: "#3fe0c0", data: [0, 1, 2, 3, 4, 5] },
-      { name: "Force (N)", color: "#ffcf5c", data: [0, 2, 4, 6, 8, 10], dashed: true }
+      { name: "Acceleration (m/s2)", color: "#7EA85B", data: [0, 1, 2, 3, 4, 5] },
+      { name: "Force (N)", color: "#F2B44B", data: [0, 2, 4, 6, 8, 10], dashed: true }
     ],
     xlabel: "Force (N) - mass fixed at 2 kg", ylabel: "Acceleration (m/s2)"
   },
@@ -166,7 +168,7 @@ var SAMPLE_TOPICS = [
     ]
   },
   diagram: {
-    inputs: [{ label: "Net force", color: "#ffcf5c" }], outputs: [{ label: "Acceleration", color: "#3fe0c0" }],
+    inputs: [{ label: "Net force", color: "#F2B44B" }], outputs: [{ label: "Acceleration", color: "#558E9B" }],
     center: "Object (mass m)", centerSub: "F_net = m x a"
   },
   worked: [
@@ -226,6 +228,7 @@ var SAMPLE_TOPICS = [
 {
   id: "supply-demand",
   title: "Supply and Demand",
+  image: "/src/assets/images/topic_supply_demand_1795445538490.jpg",
   summary: "Prices adjust until quantity supplied equals quantity demanded: the market equilibrium.",
   classification: "quant, concept, relation",
   concepts: [
@@ -254,8 +257,8 @@ var SAMPLE_TOPICS = [
   graph: {
     labels: ["0", "25", "50", "75", "100"],
     series: [
-      { name: "Demand", color: "#ff9a6b", data: [100, 75, 50, 25, 0] },
-      { name: "Supply", color: "#3fe0c0", data: [0, 25, 50, 75, 100] }
+      { name: "Demand", color: "#D9846F", data: [100, 75, 50, 25, 0] },
+      { name: "Supply", color: "#7EA85B", data: [0, 25, 50, 75, 100] }
     ],
     xlabel: "Quantity", ylabel: "Price"
   },
@@ -271,7 +274,7 @@ var SAMPLE_TOPICS = [
     ]
   },
   diagram: {
-    inputs: [{ label: "Price", color: "#ffcf5c" }], outputs: [{ label: "Quantity", color: "#3fe0c0" }],
+    inputs: [{ label: "Price", color: "#F2B44B" }], outputs: [{ label: "Quantity", color: "#558E9B" }],
     center: "Market", centerSub: "supply meets demand"
   },
   worked: [
@@ -331,7 +334,7 @@ var SAMPLE_TOPICS = [
 ];
 
 var ARCHETYPES = {
-  builder: { name: "Builder", glyph: "🔧", mode: "Interactive challenge", color: ["#ff9a6b", "#ffcf5c"], blurb: "Learns by doing.",
+  builder: { name: "Builder", glyph: "🔧", mode: "Interactive challenge", color: ["#D9846F", "#F2B44B"], blurb: "Learns by doing.",
     journeys: [
       { stage: "Mission", view: "challenge", instr: "Present a practical problem related to the topic." },
       { stage: "Predict", view: "predict", instr: "Ask the learner what they think will happen." },
@@ -339,7 +342,7 @@ var ARCHETYPES = {
       { stage: "Experiment", view: "game", instr: "Let the learner change variables or try a solution." },
       { stage: "Transfer", view: "challenge", instr: "Give a different problem requiring the same concept." },
       { stage: "Explain", view: "explain", instr: "Ask why their solution worked." } ] },
-  architect: { name: "Architect", glyph: "🏛️", mode: "Knowledge maps", color: ["#6c8cff", "#3fe0c0"], blurb: "Wants the whole system.",
+  architect: { name: "Architect", glyph: "🏛️", mode: "Knowledge maps", color: ["#558E9B", "#7EA85B"], blurb: "Wants the whole system.",
     journeys: [
       { stage: "Overview", view: "diagram", instr: "Introduce the topic and its main components." },
       { stage: "Map", view: "conceptmap", instr: "Show how concepts connect and depend on one another." },
@@ -347,7 +350,7 @@ var ARCHETYPES = {
       { stage: "Connect", view: "explain", instr: "Link newly learned concepts to existing ones." },
       { stage: "Reconstruct", view: "reconstruct", instr: "Hide the map and rebuild it from memory." },
       { stage: "Apply", view: "quiz", instr: "Test whether the system works as a whole." } ] },
-  sprinter: { name: "Sprinter", glyph: "⚡", mode: "Micro-learning & retrieval", color: ["#3fe0c0", "#6c8cff"], blurb: "Short, focused rounds.",
+  sprinter: { name: "Sprinter", glyph: "⚡", mode: "Micro-learning & retrieval", color: ["#7EA85B", "#558E9B"], blurb: "Short, focused rounds.",
     journeys: [
       { stage: "Quick start", view: "summary", instr: "Give a short summary of the topic." },
       { stage: "Learn", view: "diagram", instr: "Explain one small concept at a time." },
@@ -355,7 +358,7 @@ var ARCHETYPES = {
       { stage: "Feedback", view: "explain", instr: "Explain why the answer is right or wrong." },
       { stage: "Repeat", view: "retrieve", instr: "Bring the concept back in a later session." },
       { stage: "Challenge", view: "quiz", instr: "Mix older and newer concepts in a short quiz." } ] },
-  explorer: { name: "Explorer", glyph: "🧭", mode: "Inquiry & Socratic dialogue", color: ["#b58cff", "#6c8cff"], blurb: "Curiosity-led.",
+  explorer: { name: "Explorer", glyph: "🧭", mode: "Inquiry & Socratic dialogue", color: ["#8C6A4A", "#558E9B"], blurb: "Curiosity-led.",
     journeys: [
       { stage: "Curiosity hook", view: "hook", instr: "Begin with an intriguing question or contradiction." },
       { stage: "Hypothesise", view: "predict", instr: "Ask what the learner thinks might explain it." },
@@ -363,7 +366,7 @@ var ARCHETYPES = {
       { stage: "Challenge", view: "hook", instr: "Introduce an edge case or alternative interpretation." },
       { stage: "Resolve", view: "explain", instr: "Explain the underlying principle and correct misconceptions." },
       { stage: "Extend", view: "quiz", instr: "Ask a new question that uses the same principle." } ] },
-  strategist: { name: "Strategist", glyph: "🎯", mode: "Goal & mastery planning", color: ["#ffcf5c", "#ff9a6b"], blurb: "Goal-oriented.",
+  strategist: { name: "Strategist", glyph: "🎯", mode: "Goal & mastery planning", color: ["#F2B44B", "#D9846F"], blurb: "Goal-oriented.",
     journeys: [
       { stage: "Target", view: "goal", instr: "Identify the exam, deadline or learning objective." },
       { stage: "Diagnose", view: "diagnose", instr: "Test existing knowledge and confidence." },
@@ -371,7 +374,7 @@ var ARCHETYPES = {
       { stage: "Plan", view: "plan", instr: "Build a realistic sequence of learning activities." },
       { stage: "Practice", view: "quiz", instr: "Give targeted problems and exam-style questions." },
       { stage: "Review", view: "mastery", instr: "Analyse errors and update the next study plan." } ] },
-  deep_diver: { name: "Deep Diver", glyph: "🔬", mode: "Explanation & elaboration", color: ["#6c8cff", "#b58cff"], blurb: "Underlying reasoning.",
+  deep_diver: { name: "Deep Diver", glyph: "🔬", mode: "Explanation & elaboration", color: ["#558E9B", "#8C6A4A"], blurb: "Underlying reasoning.",
     journeys: [
       { stage: "Foundation", view: "summary", instr: "Define the key concepts and terminology." },
       { stage: "Explain", view: "diagram", instr: "Unpack how and why the concept works." },
@@ -379,7 +382,7 @@ var ARCHETYPES = {
       { stage: "Connect", view: "concepts", instr: "Link it to related theories and concepts." },
       { stage: "Explain back", view: "explain", instr: "Teach the concept in your own words." },
       { stage: "Transfer", view: "quiz", instr: "Introduce a complex problem requiring independent reasoning." } ] },
-  repeater: { name: "Repeater", glyph: "🔁", mode: "Spaced retrieval", color: ["#3fe0c0", "#ffcf5c"], blurb: "Repeated recall.",
+  repeater: { name: "Repeater", glyph: "🔁", mode: "Spaced retrieval", color: ["#7EA85B", "#F2B44B"], blurb: "Repeated recall.",
     journeys: [
       { stage: "Introduce", view: "diagram", instr: "Explain the concept clearly." },
       { stage: "Recall", view: "retrieve", instr: "Retrieve it without looking." },
@@ -387,7 +390,7 @@ var ARCHETYPES = {
       { stage: "Revisit", view: "retrieve", instr: "Schedule another retrieval attempt." },
       { stage: "Mix", view: "quiz", instr: "Combine related concepts in a mixed practice session." },
       { stage: "Apply", view: "challenge", instr: "Use the knowledge in a new context." } ] },
-  guided_learner: { name: "Guided Learner", glyph: "🧑‍🏫", mode: "Scaffolding & worked examples", color: ["#ffb454", "#ffcf5c"], blurb: "Gradually reduced support.",
+  guided_learner: { name: "Guided Learner", glyph: "🧑‍🏫", mode: "Scaffolding & worked examples", color: ["#C97A2B", "#F2B44B"], blurb: "Gradually reduced support.",
     journeys: [
       { stage: "Explain", view: "summary", instr: "Introduce one concept in simple language." },
       { stage: "Demonstrate", view: "worked", instr: "Show a complete worked example." },

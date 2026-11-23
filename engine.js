@@ -10,10 +10,11 @@ var state = {
   index: 0,
   xp: 0,
   progress: {},      // topicId -> { mastery:{}, completed:[], quizLog:{correct,total}, index }
-  edits: {},         // topicId -> override { title, summary, concepts, quiz, relationships, source_text }
+  edits: {},         // topicId -> override { title, summary, classification, concepts, quiz, relationships, source_text }
   customTopics: [],  // topics created from PDF
   srs: {},           // conceptKey -> { reps, ease, interval, due }
-  plan: null
+  plan: null,
+  assessmentProfile: null
 };
 
 var T = null; // active topic
@@ -25,7 +26,8 @@ function store() {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         archetype: state.archetype, activeTopicId: state.activeTopicId, xp: state.xp,
-        progress: state.progress, edits: state.edits, customTopics: state.customTopics, srs: state.srs, plan: state.plan
+        progress: state.progress, edits: state.edits, customTopics: state.customTopics,
+        srs: state.srs, plan: state.plan, assessmentProfile: state.assessmentProfile
       }));
     }
   } catch (e) {}
@@ -44,6 +46,7 @@ function restore() {
     if (s.customTopics) state.customTopics = s.customTopics;
     if (s.srs) state.srs = s.srs;
     if (s.plan) state.plan = s.plan;
+    if (s.assessmentProfile) state.assessmentProfile = s.assessmentProfile;
   } catch (e) {}
 }
 
@@ -56,6 +59,7 @@ function getTopic(id) {
   if (ed) {
     if (ed.title != null) merged.title = ed.title;
     if (ed.summary != null) merged.summary = ed.summary;
+    if (ed.classification != null) merged.classification = ed.classification;
     if (ed.concepts != null) merged.concepts = ed.concepts;
     if (ed.quiz != null) merged.quiz = ed.quiz;
     if (ed.relationships != null) merged.relationships = ed.relationships;
@@ -183,14 +187,41 @@ function showScreen(name) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function topicThumbHtml(t) {
+  var src = t.image || "/public/assets/aistudio/image_9f1ca12d.png";
+  return '<div class="topic-thumb"><img src="' + esc(src) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
+}
+
 function renderHome() {
+  var banner = $("assessmentBanner");
+  if (banner) {
+    var ap = state.assessmentProfile;
+    if (ap && ap.primary_key && ARCHETYPES[ap.primary_key]) {
+      banner.classList.remove("hidden");
+      var secText = ap.secondary_name ? (" + " + ap.secondary_name) : "";
+      var ctxText = ap.study_context ? (" · Context: " + ap.study_context.replace(/_/g, " ")) : "";
+      banner.innerHTML =
+        '<div class="ed-item" style="background:var(--tint-mint)">' +
+        '<div class="row"><div><div class="status-text done" style="margin-bottom:4px">Assessment profile: ' + esc(ap.label || "Detected") + '</div>' +
+        '<div style="font-weight:700">Recommended starting archetype: ' + esc(ap.primary_name + secText) + '</div>' +
+        '<div class="small muted">Selected from your 24-question assessment' + esc(ctxText) + '. You can still switch or explore any archetype below.</div></div>' +
+        '<button class="btn sm" id="launchAssessedBtn">Start as ' + esc(ap.primary_name) + ' →</button></div></div>';
+      var lbtn = $("launchAssessedBtn");
+      if (lbtn) lbtn.addEventListener("click", function () { startJourney(ap.primary_key); });
+    } else {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+    }
+  }
+
   var picker = $("homeTopicPicker");
   picker.innerHTML = "";
   var wrap = el("div", "topic-grid");
   allTopics().forEach(function (t) {
     var on = state.activeTopicId === t.id;
     var c = el("div", "topic-card" + (on ? " on" : ""));
-    c.innerHTML = '<div class="tt">' + esc(t.title) + '</div><div class="ts">' + esc((t.summary || "").slice(0, 90)) + (t.summary && t.summary.length > 90 ? "..." : "") + '</div><div class="tm">' + (on ? "Selected" : "Select") + "</div>";
+    c.innerHTML = topicThumbHtml(t) +
+      '<div class="topic-body"><div class="tt">' + esc(t.title) + '</div><div class="ts">' + esc((t.summary || "").slice(0, 90)) + (t.summary && t.summary.length > 90 ? "..." : "") + '</div><div class="tm">' + (on ? "✓ Selected" : "Select topic") + "</div></div>";
     c.addEventListener("click", function () { setTopic(t.id); renderHome(); toast("Topic: " + t.title); });
     wrap.appendChild(c);
   });
@@ -198,12 +229,15 @@ function renderHome() {
 
   var grid = $("archGrid");
   grid.innerHTML = "";
+  var recKey = state.assessmentProfile && state.assessmentProfile.primary_key;
   Object.keys(ARCHETYPES).forEach(function (key) {
     var a = ARCHETYPES[key];
     var card = el("div", "arch-card");
     card.style.setProperty("--c1", a.color[0]);
     card.style.setProperty("--c2", a.color[1]);
-    card.innerHTML = '<div class="glyph">' + a.glyph + "</div>" + '<div class="nm">' + a.name + "</div>" +
+    if (recKey === key) card.style.background = "var(--tint-mint)";
+    card.innerHTML = '<div class="glyph"><span>' + a.glyph + '</span>' + (recKey === key ? '<span class="status-text done">Match</span>' : "") + "</div>" +
+      '<div class="nm">' + a.name + "</div>" +
       '<div class="sub">' + a.mode + "</div>" + '<div class="bar"></div>';
     card.addEventListener("click", function () { startJourney(key); });
     grid.appendChild(card);
@@ -234,12 +268,63 @@ function renderLibrary() {
       masteryPct = vals.length ? Math.round(vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) : 0;
     }
     var c = el("div", "topic-card" + (on ? " on" : ""));
-    c.innerHTML = '<div class="tt">' + esc(t.title) + '</div>' +
+    c.innerHTML = topicThumbHtml(t) +
+      '<div class="topic-body"><div class="tt">' + esc(t.title) + '</div>' +
       '<div class="ts">' + esc((t.summary || "").slice(0, 110)) + '</div>' +
-      '<div class="tm">' + (t.id.indexOf("custom") === 0 ? "Custom topic" : "Sample") + " - " + (t.concepts ? t.concepts.length : 0) + " concepts - mastery " + masteryPct + "%</div>";
+      '<div class="tm">' + (t.id.indexOf("custom") === 0 ? "Custom topic" : "Sample") + " · " + (t.concepts ? t.concepts.length : 0) + " concepts · mastery " + masteryPct + "%</div></div>";
     c.addEventListener("click", function () { setTopic(t.id); toast("Topic: " + t.title); showScreen("home"); });
     grid.appendChild(c);
   });
+}
+
+function computeAdaptiveRecommendation() {
+  var a = ARCHETYPES[state.archetype];
+  var p = topicProgress();
+  var rep = classifyContent(T);
+  var imm = p.quizLog.total ? Math.round((p.quizLog.correct / p.quizLog.total) * 100) : null;
+  var due = srsDueCount(T);
+  var vals = (T.concepts || []).map(function (c) { return p.mastery[c.id] || 0; });
+  var avgMastery = vals.length ? Math.round(vals.reduce(function (x, y) { return x + y; }, 0) / vals.length) : 0;
+
+  var rules = [];
+  if (imm !== null && imm < 60) {
+    rules.push({
+      badge: "Remedial rule",
+      cls: "lock",
+      text: "Quiz accuracy is " + imm + "%. Rules engine recommends reinforcing with a worked example or guided retrieval before advancing.",
+      actionLabel: "Open worked example →",
+      onAction: function () {
+        var idx = a.journeys.findIndex(function (j) { return j.view === "worked" || j.view === "guide" || j.view === "diagram"; });
+        p.index = idx >= 0 ? idx : 0; store(); showScreen("cycle");
+      }
+    });
+  }
+  if (due > 0 && p.completed.length >= 2) {
+    rules.push({
+      badge: "SRS rule",
+      cls: "now",
+      text: due + " concept flashcard" + (due === 1 ? " is" : "s are") + " due for spaced-repetition review to lock in retention.",
+      actionLabel: "Review " + due + " due card" + (due === 1 ? "" : "s") + " →",
+      onAction: function () { showScreen("review"); }
+    });
+  }
+  if (state.assessmentProfile && state.assessmentProfile.secondary_name && state.assessmentProfile.profile_type === "blended") {
+    rules.push({
+      badge: "Blended profile",
+      cls: "done",
+      text: "Your assessment showed a blend with " + state.assessmentProfile.secondary_name + ". Try switching to " + state.assessmentProfile.secondary_name + " after completing this cycle to compare formats.",
+      actionLabel: "Switch to " + state.assessmentProfile.secondary_name,
+      onAction: function () { startJourney(state.assessmentProfile.secondary_key); }
+    });
+  }
+  if (!rules.length) {
+    rules.push({
+      badge: "Sequencing rule",
+      cls: "now",
+      text: "Content classified as [" + rep.classification.join(", ") + "] → best visual fit: " + rep.representationLabel + ". Average mastery: " + avgMastery + "%."
+    });
+  }
+  return rules[0];
 }
 
 function renderQuest() {
@@ -254,6 +339,18 @@ function renderQuest() {
   $("questTitle").textContent = "Chapter: " + T.title;
   $("questSub").textContent = "Concept mastery is earned through demonstrated understanding, not by viewing content.";
 
+  var abox = $("adaptiveBox");
+  if (abox) {
+    var rec = computeAdaptiveRecommendation();
+    abox.innerHTML = '<div class="ed-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--tint-sky)">' +
+      '<div style="flex:1"><span class="status-text ' + rec.cls + '" style="margin-right:10px">' + esc(rec.badge) + ' ·</span><span class="small">' + esc(rec.text) + '</span></div>' +
+      (rec.actionLabel ? '<button class="btn secondary sm" id="adaptiveActionBtn">' + esc(rec.actionLabel) + '</button>' : '') +
+      '</div>';
+    if (rec.onAction && $("adaptiveActionBtn")) {
+      $("adaptiveActionBtn").addEventListener("click", rec.onAction);
+    }
+  }
+
   var ml = $("masteryList"); ml.innerHTML = "";
   T.concepts.forEach(function (c) {
     var m = p.mastery[c.id] || 0;
@@ -262,15 +359,20 @@ function renderQuest() {
     ml.appendChild(row);
   });
 
+  var nextIdx = nextIncompleteIndex(p);
   var mlist = $("missionList"); mlist.innerHTML = "";
   a.journeys.forEach(function (j, i) {
     var done = p.completed.indexOf(i) > -1;
-    var current = !done && (p.completed.length === i || p.completed.length === 0);
-    var locked = !done && !current && p.completed.length < i;
+    var current = !done && i === nextIdx;
+    var locked = !done && !current && i > nextIdx;
     var m = el("div", "mission" + (done ? " done" : "") + (current ? " current" : ""));
-    var tag = done ? '<span class="tag done">Complete</span>' : (current ? '<span class="tag now">Current</span>' : (locked ? '<span class="tag lock">Locked</span>' : '<span class="tag next">Up next</span>'));
-    m.innerHTML = '<div class="num">' + (done ? "OK" : (i + 1)) + "</div>" +
+    m.style.cursor = "pointer";
+    var tag = done ? '<span class="status-text done">Complete</span>' : (current ? '<span class="status-text now">Current</span>' : (locked ? '<span class="status-text next">Up next</span>' : '<span class="status-text next">Up next</span>'));
+    m.innerHTML = '<div class="num">' + (done ? "✓" : (i + 1)) + "</div>" +
       '<div class="body"><div class="ttl">' + esc(j.stage) + '</div><div class="st">' + esc(j.instr) + "</div></div>" + tag;
+    m.addEventListener("click", function () {
+      p.index = i; store(); showScreen("cycle");
+    });
     mlist.appendChild(m);
   });
 
@@ -368,23 +470,23 @@ function renderDashboard() {
 function drawEngagement(done, total) {
   var c = $("engagementChart"); if (!c || !window.Chart) return;
   try { if (charts.eng) charts.eng.destroy(); charts.eng = new Chart(c, {
-    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#3fe0c0", "#1c2338"], borderColor: "#141a2b", borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: "68%", plugins: { legend: { labels: { color: "#c6cdea" } } } } }); } catch (e) {}
+    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#7EA85B", "#F4EED9"], borderColor: "#2C261F", borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } } } }); } catch (e) {}
 }
 function drawImmediate(imm) {
   var c = $("immediateChart"); if (!c || !window.Chart) return;
   try { if (charts.imm) charts.imm.destroy(); charts.imm = new Chart(c, {
-    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#6c8cff" }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } } } } }); } catch (e) {}
+    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#558E9B", borderColor: "#2C261F", borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } } }); } catch (e) {}
 }
 function drawRetention(imm, ret, transfer) {
   var c = $("retentionChart"); if (!c || !window.Chart) return;
   try { if (charts.ret) charts.ret.destroy(); charts.ret = new Chart(c, {
     type: "bar",
     data: { labels: ["Immediate", "Delayed retention", "Transfer"], datasets: [
-      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#3a4568" },
-      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#3fe0c0" } ] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#c6cdea" } } }, scales: { x: { ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#93a0c2" }, grid: { color: "rgba(255,255,255,.05)" } } } } }); } catch (e) {}
+      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#D6CCB5", borderColor: "#2C261F", borderWidth: 2 },
+      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#7EA85B", borderColor: "#2C261F", borderWidth: 2 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } } }); } catch (e) {}
 }
 
 /* quiz engine */

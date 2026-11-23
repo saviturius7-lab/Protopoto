@@ -4,158 +4,203 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Unlocked — Learner Archetype Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=IBM+Plex+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0f1220;
-    --surface: #181c2f;
-    --surface-2: #20253d;
-    --border: #2b3152;
-    --text: #e8ebf5;
-    --muted: #98a0c0;
-    --accent: #6c8cff;
-    --accent-2: #4de0c1;
-    --danger: #ff6b8a;
-    --radius: 14px;
-    --shadow: 0 12px 40px rgba(0,0,0,.35);
+    --bg: #F4EED9;
+    --sky: #B8D0CC;
+    --surface: #FCF9EE;
+    --surface-2: #F2ECD5;
+    --tint-sky: #DCE9E6;
+    --tint-mint: #DFEAC6;
+    --tint-gold: #FCEB9C;
+    --ink: #2C261F;
+    --muted: #57534A;
+    --border: #2C261F;
+    --hairline: #D6CCB5;
+    --accent: #558E9B;
+    --accent-2: #7EA85B;
+    --gold: #F2B44B;
+    --danger: #C45158;
+    --radius: 16px;
+    --radius-sm: 11px;
+    --shadow: 4px 4px 0 #2C261F;
+    --shadow-sm: 2.5px 2.5px 0 #2C261F;
+    --font-display: "Fredoka", system-ui, sans-serif;
+    --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(1200px 600px at 50% -10%, #1b2140 0%, var(--bg) 55%);
-    color: var(--text);
+    font-family: var(--font-body);
+    background: linear-gradient(180deg, #B8D0CC 0%, #DCE6DA 240px, var(--bg) 500px, var(--bg) 100%);
+    color: var(--ink);
     min-height: 100vh;
-    line-height: 1.55;
+    line-height: 1.6;
   }
-  .wrap { max-width: 820px; margin: 0 auto; padding: 28px 20px 80px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; }
-  .brand .dot { width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),var(--accent-2)); }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; }
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between; gap: 32px;
+    padding: 12px 28px; background: rgba(252,249,238,.94); backdrop-filter: blur(8px);
+    border-bottom: 2px solid var(--border);
+  }
+  .brand {
+    font-family: var(--font-display); font-size: 1.35rem; font-weight: 700;
+    color: var(--ink); white-space: nowrap; flex-shrink: 0;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 24px 80px; }
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 2.5px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    padding: 28px;
+    padding: 32px;
   }
-  h1 { font-size: 1.7rem; line-height: 1.25; margin: 18px 0 8px; }
-  h2 { font-size: 1.25rem; margin: 0 0 10px; }
-  p { color: var(--muted); }
-  .lede { font-size: 1.05rem; color: #c3c9e6; }
-  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
-  .pill {
-    background: var(--surface-2); border: 1px solid var(--border);
-    padding: 6px 12px; border-radius: 999px; font-size: .82rem; color: #c3c9e6;
+  h1 { font-family: var(--font-display); font-size: clamp(1.75rem, 3vw, 2.3rem); line-height: 1.15; margin: 0 0 10px; color: var(--ink); text-wrap: balance; }
+  h2 { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 10px; color: var(--ink); }
+  h3 { font-family: var(--font-display); font-size: 1.08rem; margin: 0 0 6px; color: var(--ink); }
+  p { color: var(--muted); margin: 0 0 12px; }
+  .lede { font-size: 1.05rem; color: var(--muted); max-width: 65ch; }
+  .meta-line {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-size: .84rem; font-weight: 600; color: var(--muted); margin: 0 0 12px;
   }
+  .hero-split {
+    display: grid; grid-template-columns: 1.15fr .85fr; gap: 24px; align-items: stretch; margin-bottom: 20px;
+  }
+  @media (max-width: 780px) { .hero-split { grid-template-columns: 1fr; } }
+  .hero-art {
+    border: 2.5px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: var(--tint-sky); box-shadow: var(--shadow-sm); min-height: 210px;
+  }
+  .hero-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .note {
-    background: #1d2340; border: 1px dashed var(--border);
-    border-radius: 12px; padding: 14px 16px; font-size: .9rem; color: var(--muted);
-    margin: 18px 0;
+    background: var(--tint-gold); border: 2px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px 16px; font-size: .92rem; color: var(--ink);
+    margin: 16px 0;
   }
   .btn {
-    appearance: none; border: 1px solid transparent; cursor: pointer;
-    background: linear-gradient(135deg, var(--accent), #8a7bff);
-    color: #0a0d18; font-weight: 700; font-size: 1rem;
-    padding: 13px 22px; border-radius: 12px; transition: transform .06s ease, filter .15s ease;
+    appearance: none; border: 2px solid var(--border); cursor: pointer;
+    background: var(--gold); color: var(--ink); font-family: var(--font-body);
+    font-weight: 700; font-size: .95rem; padding: 11px 22px; border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm); white-space: nowrap; flex-shrink: 0; text-decoration: none;
+    transition: transform .12s cubic-bezier(.16,1,.3,1), box-shadow .12s ease, background .12s ease;
   }
-  .btn:hover { filter: brightness(1.08); }
-  .btn:active { transform: translateY(1px); }
-  .btn.secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); font-weight: 600; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:hover { transform: translate(-1px,-1px); box-shadow: 3.5px 3.5px 0 var(--border); background: #F7C66E; }
+  .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--border); }
+  .btn.secondary { background: var(--surface); color: var(--ink); }
+  .btn.secondary:hover { background: var(--tint-sky); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
   .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-  .progress { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 6px 0 22px; }
-  .progress > div { height: 100%; width: 0%; background: linear-gradient(90deg,var(--accent),var(--accent-2)); transition: width .25s ease; }
-  .qmeta { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: 10px; }
-  .question { font-size: 1.18rem; font-weight: 600; margin: 4px 0 20px; color: #f2f4ff; }
+  .progress { height: 12px; background: var(--surface-2); border: 2px solid var(--border); border-radius: 999px; overflow: hidden; margin: 8px 0 22px; }
+  .progress > div { height: 100%; width: 0%; background: var(--accent-2); transition: width .25s ease; }
+  .qmeta { display: flex; justify-content: space-between; font-size: .85rem; font-family: var(--font-mono); color: var(--muted); margin-bottom: 8px; }
+  .question { font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; margin: 6px 0 20px; color: var(--ink); }
   .options { display: grid; gap: 10px; }
   .opt {
     display: flex; align-items: center; gap: 12px; text-align: left;
-    background: var(--surface-2); border: 1px solid var(--border);
-    color: var(--text); border-radius: 12px; padding: 14px 16px; cursor: pointer;
-    font-size: .98rem; transition: border-color .12s ease, background .12s ease, transform .06s ease;
+    background: var(--surface-2); border: 2px solid var(--border);
+    color: var(--ink); border-radius: var(--radius-sm); padding: 13px 16px; cursor: pointer;
+    font-size: .96rem; font-family: var(--font-body); font-weight: 500;
+    transition: background .12s ease;
   }
-  .opt:hover { border-color: var(--accent); }
-  .opt:active { transform: translateY(1px); }
+  .opt:hover { background: var(--tint-sky); }
   .opt .k {
     flex: 0 0 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-    background: #11152a; border: 1px solid var(--border); font-weight: 700; font-size: .85rem; color: var(--muted);
+    background: var(--surface); border: 2px solid var(--border);
+    font-family: var(--font-mono); font-weight: 700; font-size: .85rem; color: var(--ink);
   }
-  .opt.selected { border-color: var(--accent); background: #1b2142; }
-  .opt.selected .k { background: var(--accent); color: #0a0d18; border-color: var(--accent); }
-  .nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 26px; }
+  .opt.selected { background: var(--tint-gold); box-shadow: var(--shadow-sm); font-weight: 700; }
+  .opt.selected .k { background: var(--gold); }
+  .nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 26px; align-items: center; flex-wrap: wrap; }
   .nav .spacer { flex: 1; }
-  .scale-hint { font-size: .82rem; color: var(--muted); margin-top: 14px; }
-  /* context */
-  .ctx-options { display: grid; gap: 8px; margin: 6px 0 6px; }
+  .scale-hint { font-size: .84rem; color: var(--muted); margin-top: 14px; }
+  .ctx-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 8px 0; }
+  @media (max-width: 640px) { .ctx-options { grid-template-columns: 1fr; } }
+
   /* results */
-  .result-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
-  .result-title { font-size: 1.7rem; font-weight: 800; margin: 0; }
-  .badge {
-    display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .78rem;
-    font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
-  }
-  .badge.primary { background: rgba(108,140,255,.18); color: #a9bdff; border: 1px solid rgba(108,140,255,.4); }
-  .badge.blended { background: rgba(77,224,193,.16); color: #8cf0db; border: 1px solid rgba(77,224,193,.4); }
-  .badge.multi { background: rgba(255,190,90,.16); color: #ffd28c; border: 1px solid rgba(255,190,90,.4); }
-  .badge.flexible { background: rgba(200,150,255,.16); color: #d6b6ff; border: 1px solid rgba(200,150,255,.4); }
-  .badge.insufficient { background: rgba(255,107,138,.16); color: #ff9db3; border: 1px solid rgba(255,107,138,.4); }
-  .scores { display: grid; gap: 12px; margin: 22px 0 6px; }
-  .score-row { display: grid; grid-template-columns: 150px 1fr 64px; align-items: center; gap: 12px; }
-  .score-row .name { font-size: .9rem; font-weight: 600; }
-  .bar { height: 12px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
-  .bar > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg,var(--accent),var(--accent-2)); transition: width .6s cubic-bezier(.2,.7,.2,1); }
-  .bar.top > div { background: linear-gradient(90deg,#8a7bff,#4de0c1); }
-  .score-row .val { text-align: right; font-variant-numeric: tabular-nums; color: #cdd3ee; font-weight: 700; font-size: .9rem; }
-  .detail-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 8px; }
+  .result-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .result-title { font-family: var(--font-display); font-size: 1.85rem; font-weight: 700; margin: 0; color: var(--ink); }
+  .badge { font-family: var(--font-mono); font-size: .82rem; font-weight: 700; color: #0B74B8; }
+  .badge.blended { color: var(--accent-2); }
+  .badge.multi { color: #B45309; }
+  .badge.flexible { color: #6D28D9; }
+  .badge.insufficient { color: var(--danger); }
+
+  .scores { display: grid; gap: 12px; margin: 22px 0 8px; }
+  .score-row { display: grid; grid-template-columns: 150px 1fr 68px; align-items: center; gap: 12px; }
+  .score-row .name { font-size: .92rem; font-weight: 700; color: var(--ink); }
+  .bar { height: 14px; background: var(--surface-2); border: 2px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .6s cubic-bezier(.2,.7,.2,1); }
+  .bar.top > div { background: var(--accent-2); }
+  .score-row .val { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 700; font-size: .9rem; }
+  .detail-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 12px; }
   .detail {
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    background: var(--surface-2); border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px;
   }
-  .detail h3 { margin: 0 0 6px; font-size: 1.02rem; }
-  .detail .tag { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  .detail .tools { margin-top: 8px; font-size: .9rem; color: #cdd3ee; }
-  .detail .seq { margin-top: 6px; font-size: .9rem; color: var(--accent-2); font-weight: 600; }
+  .detail h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .detail .tag { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); font-weight: 700; }
+  .detail .tools { margin-top: 8px; font-size: .9rem; color: var(--ink); }
+  .detail .seq { margin-top: 6px; font-size: .92rem; color: #0B74B8; font-weight: 700; }
   .meaning { margin-top: 20px; }
   .meaning h3 { margin-bottom: 6px; }
   pre {
-    background: #0b0e1c; border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px; overflow: auto; font-size: .82rem; color: #cdd3ee; line-height: 1.5;
+    background: var(--surface-2); border: 2px solid var(--border); border-radius: var(--radius-sm);
+    padding: 16px; overflow: auto; font-family: var(--font-mono); font-size: .82rem; color: var(--ink); line-height: 1.5;
   }
-  .disclaimer { font-size: .82rem; color: var(--muted); margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
+  .disclaimer { font-size: .84rem; color: var(--muted); margin-top: 24px; border-top: 1.5px solid var(--hairline); padding-top: 14px; }
   .hidden { display: none !important; }
-  .footer-note { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 26px; }
+  .footer-note { text-align: center; color: var(--muted); font-size: .82rem; margin-top: 26px; }
   @media (max-width: 560px) {
-    .score-row { grid-template-columns: 110px 1fr 50px; gap: 8px; }
+    .score-row { grid-template-columns: 110px 1fr 54px; gap: 8px; }
     .score-row .name { font-size: .82rem; }
     .card { padding: 20px; }
-    h1 { font-size: 1.4rem; }
+    .topbar { padding: 10px 16px; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="brand"><span class="dot"></span> Unlocked</div>
+<header class="topbar">
+  <div class="brand">Unlocked</div>
+  <div class="meta-line" style="margin:0">Learner Archetype Assessment</div>
+  <a href="index.html" class="btn secondary" style="padding:8px 15px;font-size:.86rem">← Back to engine</a>
+</header>
 
+<main class="wrap">
   <!-- ================= INTRO ================= -->
   <section id="intro" class="card">
-    <h1>Learner Archetype Assessment</h1>
-    <p class="lede">A short onboarding assessment that measures <strong>how you actually prefer to study</strong> — not which learner type sounds most like you.</p>
-    <div class="pills">
-      <span class="pill">24 questions</span>
-      <span class="pill">8 archetypes</span>
-      <span class="pill">4-point scale</span>
-      <span class="pill">4–6 minutes</span>
+    <div class="hero-split">
+      <div>
+        <div class="meta-line">
+          <span>24 questions</span><span aria-hidden="true">·</span>
+          <span>8 archetypes</span><span aria-hidden="true">·</span>
+          <span>4-point scale</span><span aria-hidden="true">·</span>
+          <span>4–6 minutes</span>
+        </div>
+        <h1>Learner Archetype Assessment</h1>
+        <p class="lede">A short onboarding assessment that measures <strong>how you actually prefer to study</strong> — not which learner type sounds most like you.</p>
+        <div class="note">
+          <strong>How it works.</strong> Pick the option that best describes how you normally study:
+          <strong>1 — Not at all like me · 2 — A little like me · 3 — Mostly like me · 4 — Very much like me.</strong>
+          Questions appear in a randomised order.
+        </div>
+      </div>
+      <div class="hero-art">
+        <img src="/public/assets/aistudio/image_052f24b8.png" alt="Misty sage rolling hills, mossy ancient tree, and distant snow-capped mountain peaks" referrerpolicy="no-referrer" />
+      </div>
     </div>
 
-    <div class="note">
-      <strong>How it works.</strong> For each statement, pick the option that best describes how you normally study:
-      <strong>1 — Not at all like me · 2 — A little like me · 3 — Mostly like me · 4 — Very much like me.</strong>
-      Answer based on what you actually do, not what you think a good student <em>should</em> do.
-      Questions appear in a randomised order, so the pattern isn't obvious.
-    </div>
-
-    <div class="row" style="margin:22px 0 8px;">
+    <div class="row" style="margin:18px 0 8px;">
       <h2 style="margin:0;">Before we begin</h2>
     </div>
-    <p style="margin-top:0;">What are you primarily studying for right now? <span style="color:var(--muted);">(optional — this is context, not part of your score)</span></p>
+    <p style="margin-top:0;">What are you primarily studying for right now? <span style="color:var(--muted);">(optional — context only)</span></p>
     <div class="ctx-options" id="ctxOptions">
       <button class="opt ctx-opt" data-ctx="examination"><span class="k">1</span> An upcoming examination</button>
       <button class="opt ctx-opt" data-ctx="long_term"><span class="k">2</span> Long-term understanding</button>
@@ -170,7 +215,7 @@
       <button class="btn" id="startBtn">Start assessment</button>
     </div>
     <p class="disclaimer">
-      Designed for an initial prototype, not yet a validated psychological assessment. Scores are preferences, not probabilities of learning ability.
+      Designed for an initial prototype, not yet a validated psychological assessment. Scores are preferences, not measures of learning ability.
     </p>
   </section>
 
@@ -211,23 +256,24 @@
     <div class="row" style="margin-top:26px;">
       <div>
         <h3 style="margin:0 0 4px;">Learner profile data (JSON)</h3>
-        <p style="margin:0; font-size:.86rem;">Illustrative structure — scores are not validated probabilities.</p>
+        <p style="margin:0; font-size:.86rem;">Illustrative structure — scores are preference signals, not validated probabilities.</p>
       </div>
     </div>
     <pre id="jsonOut"></pre>
 
     <p class="disclaimer">
-      This is a prototype assessment. It should determine your <em>initial</em> learning experience, not permanently assign you to a content format. Scores are preference signals, not measures of ability.
+      This is a prototype assessment. It determines your <em>initial</em> learning experience, not a permanent format assignment.
     </p>
 
     <div class="nav">
       <button class="btn secondary" id="retakeBtn">Retake assessment</button>
+      <button class="btn secondary" id="copyBtn">Copy JSON</button>
       <div class="spacer"></div>
-      <button class="btn" id="copyBtn">Copy JSON</button>
+      <button class="btn" id="applyProfileBtn">Start personalised journey →</button>
     </div>
-    <p class="footer-note">Unlocked · Learner Archetype Assessment · Prototype</p>
+    <p class="footer-note">Unlocked · Learner Archetype Assessment</p>
   </section>
-</div>
+</main>
 
 <script>
 (function () {
@@ -593,9 +639,38 @@
       grid.appendChild(d);
     });
 
-    // JSON
+    // JSON & localStorage persistence
     var profile = buildProfileJSON(scores, prof);
     $("jsonOut").textContent = JSON.stringify(profile, null, 2);
+
+    function saveProfileToEngine() {
+      var STORE_KEY = "unlocked_phase1_v1";
+      try {
+        var existing = {};
+        var raw = localStorage.getItem(STORE_KEY);
+        if (raw) existing = JSON.parse(raw) || {};
+        existing.archetype = prof.primary ? prof.primary.key : "builder";
+        existing.assessmentProfile = {
+          profile_type: prof.type,
+          label: prof.label,
+          primary_key: prof.primary ? prof.primary.key : "builder",
+          primary_name: prof.primary ? prof.primary.name : "Builder",
+          secondary_key: prof.secondary ? prof.secondary.key : null,
+          secondary_name: prof.secondary ? prof.secondary.name : null,
+          archetypes: prof.archetypes.map(function (a) { return { key: a.key, name: a.name, score: a.score }; }),
+          scores: scores,
+          study_context: profile.study_context,
+          completed_at: new Date().toISOString()
+        };
+        localStorage.setItem(STORE_KEY, JSON.stringify(existing));
+      } catch (e) {}
+    }
+    saveProfileToEngine();
+
+    $("applyProfileBtn").onclick = function () {
+      saveProfileToEngine();
+      window.location.href = "index.html?from=assessment";
+    };
 
     // copy handler (reset)
     $("copyBtn").onclick = function () {
