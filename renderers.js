@@ -70,20 +70,20 @@ function buildDiagram() {
   var W = 640, H = 300, cx = 320, cy = 150;
   var inp = dg.inputs || [], outp = dg.outputs || [];
   var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit" style="background:var(--surface-2);border:2px solid var(--border);border-radius:12px">';
-  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2C261F"/></marker>' +
-    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2C261F"/></marker></defs>';
-  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#DFEAC6" stroke="#2C261F" stroke-width="3"/>';
-  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#2C261F" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
-  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#57534A" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
+  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2DDAC2"/></marker>' +
+    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2DDAC2"/></marker></defs>';
+  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#134542" stroke="#2DDAC2" stroke-width="3"/>';
+  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#E2FAF6" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
+  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#87C5BC" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
   inp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, inp.length));
-    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#2C261F" stroke-width="2.5" marker-end="url(#ar)"/>';
-    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#2C261F" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#2DDAC2" stroke-width="2.5" marker-end="url(#ar)"/>';
+    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#E2FAF6" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   outp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, outp.length));
-    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#2C261F" stroke-width="2.5" marker-end="url(#ar2)"/>';
-    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#2C261F" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#2DDAC2" stroke-width="2.5" marker-end="url(#ar2)"/>';
+    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#E2FAF6" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   svg += "</svg>";
   box.innerHTML = svg;
@@ -100,13 +100,13 @@ function initMermaidOoo() {
     startOnLoad: false,
     theme: "base",
     themeVariables: {
-      background: "#F2ECD5",
-      primaryColor: "#FCEB9C",
-      primaryTextColor: "#2C261F",
-      primaryBorderColor: "#2C261F",
-      lineColor: "#2C261F",
-      secondaryColor: "#DCE9E6",
-      tertiaryColor: "#DFEAC6",
+      background: "#103433",
+      primaryColor: "#144A47",
+      primaryTextColor: "#E2FAF6",
+      primaryBorderColor: "#2DDAC2",
+      lineColor: "#2DDAC2",
+      secondaryColor: "#0E3D31",
+      tertiaryColor: "#143B34",
       fontFamily: "Plus Jakarta Sans, sans-serif"
     }
   });
@@ -182,16 +182,16 @@ function buildGraph() {
   setTimeout(function () {
     try {
       if (!window.Chart) { canvas.outerHTML = '<p class="small muted">Chart library unavailable offline.</p>'; return; }
-      var palette = ["#558E9B", "#C97A2B", "#7EA85B"];
+      var palette = ["#2DDAC2", "#2EE09A", "#F0B354"];
       new Chart(canvas, {
         type: "line",
         data: { labels: g.labels, datasets: (g.series || []).map(function (s, idx) {
           var col = palette[idx % palette.length];
           return { label: s.name, data: s.data, borderColor: col, backgroundColor: "transparent", borderDash: s.dashed ? [6, 4] : [], borderWidth: 3, tension: 0.35, pointRadius: 4, pointBackgroundColor: col };
         }) },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } },
-          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#2C261F", font: { weight: "700" } }, ticks: { color: "#57534A" }, grid: { color: "rgba(44,38,31,.08)" } },
-            y: { title: { display: true, text: g.ylabel || "", color: "#2C261F", font: { weight: "700" } }, ticks: { color: "#57534A" }, grid: { color: "rgba(44,38,31,.08)" } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } },
+          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#E2FAF6", font: { weight: "700" } }, ticks: { color: "#87C5BC" }, grid: { color: "rgba(135,197,188,.14)" } },
+            y: { title: { display: true, text: g.ylabel || "", color: "#E2FAF6", font: { weight: "700" } }, ticks: { color: "#87C5BC" }, grid: { color: "rgba(135,197,188,.14)" } } } }
       });
     } catch (e) {}
   }, 30);
@@ -216,8 +216,8 @@ RENDERERS.conceptmap = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#FCEB9C", border: "#2C261F", highlight: { background: "#558E9B", border: "#2C261F" } }, font: { color: "#2C261F", face: "Plus Jakarta Sans", bold: true } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#2C261F" }, font: { color: "#57534A", size: 11, background: "#F2ECD5" }, width: 2 }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#144A47", border: "#2DDAC2", highlight: { background: "#19C2AE", border: "#E2FAF6" } }, font: { color: "#E2FAF6", face: "Plus Jakarta Sans", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#2DDAC2" }, font: { color: "#87C5BC", size: 11, background: "#103433" }, width: 2 }; }));
         w._net = new vis.Network(container, { nodes: nodes, edges: edges }, { layout: { improvedLayout: true }, physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true, tooltipDelay: 120 } });
         return;
       } catch (e) {}
@@ -244,8 +244,8 @@ RENDERERS.reconstruct = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: labels ? c.name : "?", shape: "box", borderWidth: 2, color: { background: labels ? "#DCE9E6" : "#F3D8D5", border: "#2C261F" }, font: { color: "#2C261F", bold: true } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "", arrows: "to", color: { color: "#2C261F" }, font: { color: "#57534A", size: 11, background: "#F2ECD5" }, width: 2 }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: labels ? c.name : "?", shape: "box", borderWidth: 2, color: { background: labels ? "#144A47" : "#3D1926", border: labels ? "#2DDAC2" : "#FF748B" }, font: { color: "#E2FAF6", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "", arrows: "to", color: { color: "#2DDAC2" }, font: { color: "#87C5BC", size: 11, background: "#103433" }, width: 2 }; }));
         if (container._net) container._net.destroy();
         container._net = new vis.Network(container, { nodes: nodes, edges: edges }, { physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true } });
         return;
@@ -532,8 +532,8 @@ RENDERERS.mastery = function () {
     try {
       if (window.Chart) new Chart(canvas, {
         type: "bar",
-        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#7EA85B" : "#F2B44B"; }), borderColor: "#2C261F", borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#2C261F", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } }
+        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#19C2AE" : "#158468"; }), borderColor: "#27706A", borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E2FAF6", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } }
       });
     } catch (e) {}
     (T.concepts || []).forEach(function (c) {
@@ -602,7 +602,7 @@ function buildGame() {
   var g = T.game || { title: "Interactive simulation", goal: "Adjust the variables.", kind: "limiting", target: 0, unit: "score", sliders: [] };
   viz.innerHTML = "<h4>Experiment - " + esc(g.title) + "</h4><p class='small muted' style='margin-top:0'>" + esc(g.goal) + "</p>";
   var canvas = el("canvas");
-  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#DCE9E6,#F4EED9);border-radius:12px;border:2px solid var(--border)";
+  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#0E3A38,#061B1B);border-radius:12px;border:2px solid var(--border)";
   viz.appendChild(canvas);
   var sliders = el("div");
   sliders.style.cssText = "display:grid;gap:10px;margin-top:12px";
@@ -660,29 +660,29 @@ function buildGame() {
     var sc = score(v);
     var slidersArr = g.sliders || [];
     var barW = Math.min(72, (w - 60) / Math.max(1, slidersArr.length) - 12);
-    var barColors = ["#558E9B", "#7EA85B", "#F2B44B"];
+    var barColors = ["#19C2AE", "#158468", "#3CE8D2"];
     slidersArr.forEach(function (s, i) {
       var x = 24 + i * (barW + 18), y = 60, bh = 150;
       var val = v[s.id] || 0;
-      ctx.fillStyle = "#FCF9EE"; ctx.fillRect(x, y, barW, bh);
+      ctx.fillStyle = "#0A2322"; ctx.fillRect(x, y, barW, bh);
       ctx.fillStyle = barColors[i % barColors.length]; ctx.fillRect(x, y + bh * (1 - val / 100), barW, bh * (val / 100));
-      ctx.strokeStyle = "#2C261F"; ctx.lineWidth = 2; ctx.strokeRect(x, y, barW, bh);
+      ctx.strokeStyle = "#27706A"; ctx.lineWidth = 2; ctx.strokeRect(x, y, barW, bh);
       if (s.id === "price" && g.target != null) {
         var ty = y + bh * (1 - g.target / 100);
-        ctx.fillStyle = "#C45158"; ctx.fillRect(x - 4, ty, barW + 8, 4);
+        ctx.fillStyle = "#FF748B"; ctx.fillRect(x - 4, ty, barW + 8, 4);
       }
-      ctx.fillStyle = "#2C261F"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#E2FAF6"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
       ctx.fillText(s.label, x + barW / 2, y - 8);
       ctx.fillText(Math.round(val), x + barW / 2, y + bh + 16);
     });
-    ctx.fillStyle = "#2C261F"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "#3CE8D2"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(sc + "%", w / 2, h - 38);
-    ctx.fillStyle = "#57534A"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
+    ctx.fillStyle = "#87C5BC"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
     ctx.fillText(g.unit || "score", w / 2, h - 18);
-    ctx.fillStyle = "#FCF9EE"; ctx.fillRect(24, 24, w - 48, 12);
-    ctx.fillStyle = "#7EA85B"; ctx.fillRect(24, 24, (w - 48) * Math.min(1, growth / 100), 12);
-    ctx.strokeStyle = "#2C261F"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, w - 48, 12);
-    ctx.fillStyle = "#2C261F"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
+    ctx.fillStyle = "#0A2322"; ctx.fillRect(24, 24, w - 48, 12);
+    ctx.fillStyle = "#2EE09A"; ctx.fillRect(24, 24, (w - 48) * Math.min(1, growth / 100), 12);
+    ctx.strokeStyle = "#27706A"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, w - 48, 12);
+    ctx.fillStyle = "#E2FAF6"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
     ctx.fillText("Session Progress", 24, 18);
   }
 

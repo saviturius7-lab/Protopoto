@@ -15,30 +15,33 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="/vendor/xlsx/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root{
-    --bg:#F4EED9;
-    --sky:#B8D0CC;
-    --surface:#FCF9EE;
-    --surface-2:#F2ECD5;
-    --tint-sky:#DCE9E6;
-    --tint-mint:#DFEAC6;
-    --tint-gold:#FCEB9C;
-    --ink:#2C261F;
-    --muted:#57534A;
-    --hairline:#D6CCB5;
-    --border:#2C261F;
-    --accent:#558E9B;
-    --accent-2:#7EA85B;
-    --gold:#F2B44B;
+    --bg:#051717;
+    --sky:#0B2D2B;
+    --surface:#0A2322;
+    --surface-2:#103433;
+    --tint-sky:#134040;
+    --tint-mint:#0E3D31;
+    --tint-gold:#143B34;
+    --tint-bad:#3D1926;
+    --ink:#E2FAF6;
+    --muted:#87C5BC;
+    --hairline:#1B4D4A;
+    --border:#27706A;
+    --accent:#19C2AE;
+    --accent-2:#158468;
+    --gold:#22D3BD;
     --pink:#D9846F;
-    --good:#4E8C54;
-    --warn:#C97A2B;
-    --bad:#C45158;
+    --good:#2EE09A;
+    --warn:#F0B354;
+    --bad:#FF748B;
     --radius:16px;
     --radius-sm:11px;
-    --shadow:4px 4px 0 #2C261F;
-    --shadow-sm:2.5px 2.5px 0 #2C261F;
+    --shadow:4px 4px 0 #020D0D;
+    --shadow-sm:2.5px 2.5px 0 #020D0D;
     --font-display:"Fredoka",system-ui,sans-serif;
     --font-body:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,sans-serif;
     --font-mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -47,12 +50,12 @@
   html,body{margin:0;padding:0}
   body{
     font-family:var(--font-body);
-    background:linear-gradient(180deg, #B8D0CC 0%, #DCE6DA 240px, var(--bg) 520px, var(--bg) 100%);
+    background:linear-gradient(180deg, #0D3936 0%, #072322 250px, var(--bg) 520px, var(--bg) 100%);
     color:var(--ink);
     line-height:1.6;
     min-height:100vh;
   }
-  a{color:#356A75;font-weight:700;text-decoration:none}
+  a{color:#3CE8D2;font-weight:700;text-decoration:none}
   a:hover{text-decoration:underline}
 
   /* Focus accessibility */
@@ -70,14 +73,14 @@
     position:sticky;top:0;z-index:50;
     display:flex;align-items:center;justify-content:space-between;gap:32px;
     padding:12px 28px;
-    background:rgba(252,249,238,.94);
+    background:rgba(7,27,27,.92);
     backdrop-filter:blur(8px);
     border-bottom:2px solid var(--border);
   }
   .brand{
     font-family:var(--font-display);
     font-size:1.35rem;font-weight:700;letter-spacing:.2px;
-    color:var(--ink);white-space:nowrap;flex-shrink:0;
+    color:#44ECD6;white-space:nowrap;flex-shrink:0;
   }
   .nav{
     display:flex;align-items:center;gap:20px;overflow-x:auto;
@@ -90,13 +93,13 @@
     transition:color .15s ease, border-color .15s ease;
   }
   .nav button:hover{color:var(--ink);border-bottom-color:var(--accent)}
-  .nav button.active{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+  .nav button.active{color:#44ECD6;font-weight:700;border-bottom-color:#44ECD6}
   .top-action{
     display:flex;align-items:center;gap:14px;flex-shrink:0;
   }
   .xp-readout{
     font-family:var(--font-mono);font-size:.88rem;font-weight:700;
-    font-variant-numeric:tabular-nums;color:var(--ink);
+    font-variant-numeric:tabular-nums;color:#44ECD6;
     white-space:nowrap;flex-shrink:0;
   }
 
@@ -136,8 +139,8 @@
   @media(max-width:860px){.hero-split{grid-template-columns:1fr}}
   .hero-art{
     border:2px solid var(--border);border-radius:var(--radius-sm);
-    overflow:hidden;background:linear-gradient(160deg,#B8D0CC,#C8DB8E);
-    box-shadow:var(--shadow-sm);min-height:260px;display:flex;
+    overflow:hidden;background:linear-gradient(160deg,#0D3B38,#114B3C);
+    box-shadow:var(--shadow-sm);min-height:260px;display:flex;position:relative;
   }
   .hero-art img{
     width:100%;height:100%;object-fit:cover;display:block;
@@ -152,29 +155,30 @@
   .art-fallback{
     width:100%;height:100%;display:grid;place-items:center;padding:20px;
     text-align:center;font-family:var(--font-display);color:var(--ink);
-    background:linear-gradient(135deg,#DCE9E6 0%,#DFEAC6 100%);
+    background:linear-gradient(135deg,#0E3635 0%,#124234 100%);
   }
 
-  /* Buttons: flat gouache storybook style */
+  /* Buttons: dark teal & glowing turquoise storybook style */
   .btn{
     appearance:none;border:2px solid var(--border);cursor:pointer;
     font-family:var(--font-body);font-weight:700;font-size:.94rem;
-    background:var(--gold);color:var(--ink);
+    background:var(--accent);color:#031B19;
     padding:10px 20px;border-radius:var(--radius-sm);
     box-shadow:var(--shadow-sm);
     white-space:nowrap;flex-shrink:0;
     transition:transform .12s cubic-bezier(.16,1,.3,1), box-shadow .12s cubic-bezier(.16,1,.3,1), background .12s ease;
   }
-  .btn:hover{transform:translate(-1px,-1px);box-shadow:3.5px 3.5px 0 var(--border);background:#F7C66E}
-  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--border)}
-  .btn.secondary{background:var(--surface);color:var(--ink)}
-  .btn.secondary:hover{background:var(--tint-sky)}
-  .btn.ghost{background:var(--surface-2);color:var(--ink);border-color:var(--border)}
-  .btn.ghost:hover{background:var(--tint-gold)}
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:3.5px 3.5px 0 #020D0D;background:#32DEC9}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #020D0D}
+  .btn.secondary{background:var(--surface-2);color:var(--ink)}
+  .btn.secondary:hover{background:#184B49}
+  .btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--border)}
+  .btn.ghost:hover{background:var(--tint-sky)}
   .btn.sm{padding:8px 15px;font-size:.86rem}
-  .btn.good{background:var(--accent-2);color:var(--ink)}
-  .btn.warn{background:var(--gold);color:var(--ink)}
-  .btn.bad{background:#E8A5A2;color:var(--ink)}
+  .btn.good{background:var(--good);color:#031D14}
+  .btn.good:hover{background:#48EEA9}
+  .btn.warn{background:var(--warn);color:#1E1404}
+  .btn.bad{background:#4A1D2A;color:#FFD5DF}
   .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
   .row{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -256,7 +260,7 @@
     white-space:nowrap;flex-shrink:0;
   }
   .status-text.done{color:var(--good)}
-  .status-text.now{color:#0B74B8}
+  .status-text.now{color:#3CE8D2}
   .status-text.lock{color:var(--warn)}
   .status-text.next{color:var(--muted)}
 
@@ -267,7 +271,7 @@
     border-radius:var(--radius-sm);padding:10px 12px;font-size:.82rem;text-align:center;color:var(--muted);
   }
   .stage-chip .n{font-size:.72rem;display:block;font-family:var(--font-mono)}
-  .stage-chip.on{border-color:var(--border);background:var(--gold);color:var(--ink);font-weight:700;box-shadow:2px 2px 0 var(--border)}
+  .stage-chip.on{border-color:var(--border);background:var(--accent);color:#031B19;font-weight:700;box-shadow:2px 2px 0 #020D0D}
   .stage-chip.ok{border-color:var(--accent-2);background:var(--tint-mint);color:var(--ink)}
   .instr{
     background:var(--tint-sky);border:2px solid var(--border);
@@ -290,16 +294,16 @@
     background:var(--surface);border:2px solid var(--border);
     font-family:var(--font-mono);font-weight:700;font-size:.82rem;color:var(--ink);
   }
-  .opt.correct{background:var(--tint-mint)}
-  .opt.wrong{background:#FFE4EA}
-  .opt.correct .k{background:var(--accent-2)}
-  .opt.wrong .k{background:#FF85A1}
+  .opt.correct{background:var(--tint-mint);border-color:var(--good)}
+  .opt.wrong{background:var(--tint-bad);border-color:var(--bad)}
+  .opt.correct .k{background:var(--good);color:#031D14}
+  .opt.wrong .k{background:var(--bad);color:#2B0810}
   .fb{margin-top:12px;padding:12px 15px;border-radius:var(--radius-sm);font-size:.92rem;border:2px solid var(--border)}
-  .fb.good{background:var(--tint-mint);color:var(--ink)}
-  .fb.bad{background:#FFE8ED;color:var(--ink)}
+  .fb.good{background:var(--tint-mint);color:var(--ink);border-color:var(--good)}
+  .fb.bad{background:var(--tint-bad);color:var(--ink);border-color:var(--bad)}
 
   input[type=text],input[type=number],textarea,select{
-    width:100%;background:var(--surface);border:2px solid var(--border);color:var(--ink);
+    width:100%;background:var(--surface-2);border:2px solid var(--border);color:var(--ink);
     border-radius:var(--radius-sm);padding:10px 13px;font-size:.95rem;font-family:var(--font-body);
   }
   textarea{resize:vertical;min-height:90px}
@@ -322,19 +326,19 @@
     white-space:nowrap;flex-shrink:0;font-family:var(--font-body);
   }
   .tab:hover{background:var(--tint-sky)}
-  .tab.on{background:var(--accent);color:var(--ink);box-shadow:2px 2px 0 var(--border)}
+  .tab.on{background:var(--accent);color:#031B19;box-shadow:2px 2px 0 #020D0D}
 
   .mastery-list{display:grid;gap:9px;margin-top:10px}
   .mrow{display:grid;grid-template-columns:1fr 110px 48px;gap:10px;align-items:center;font-size:.88rem}
   .mbar{height:11px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:999px;overflow:hidden}
-  .mbar>div{height:100%;width:0;background:var(--accent-2);transition:width .4s ease}
+  .mbar>div{height:100%;width:0;background:var(--accent);transition:width .4s ease}
   .mrow .mv{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
 
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0 18px}
   @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
   .kpi .lab{font-size:.78rem;color:var(--muted);font-weight:700}
-  .kpi .big{font-family:var(--font-mono);font-size:1.6rem;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .kpi .big{font-family:var(--font-mono);font-size:1.6rem;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:#44ECD6}
   .kpi .sub{font-size:.8rem;color:var(--muted)}
 
   .note{
@@ -343,22 +347,40 @@
   }
   .toast{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
-    background:var(--gold);color:var(--ink);border:2.5px solid var(--border);
+    background:var(--accent);color:#031B19;border:2.5px solid var(--border);
     box-shadow:var(--shadow-sm);padding:11px 20px;border-radius:var(--radius-sm);
     font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   .upload-zone{
-    border:2.5px dashed var(--border);border-radius:var(--radius);padding:36px 20px;text-align:center;
+    border:2.5px dashed var(--accent);border-radius:var(--radius);padding:30px 20px;text-align:center;
     background:var(--tint-sky);cursor:pointer;transition:background .15s;
   }
-  .upload-zone:hover{background:#CDEEFF}
-  .upload-zone .big{font-size:2.2rem}
+  .upload-zone:hover{background:#184D4C}
+  .upload-zone .big{font-size:2rem}
   .doc-text{
     white-space:pre-wrap;background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);
     padding:16px;font-size:.88rem;color:var(--ink);max-height:360px;overflow:auto;line-height:1.6;
   }
+  .rag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+  .rag-doc{
+    background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);
+    padding:13px 15px;display:flex;flex-direction:column;gap:8px;
+  }
+  .rag-doc img.rag-thumb{
+    width:100%;height:130px;object-fit:cover;border:2px solid var(--border);border-radius:8px;background:var(--surface);
+  }
+  .rag-hit{
+    background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);
+    padding:14px 16px;display:grid;gap:8px;
+  }
+  .rag-hit mark{background:#1D6F63;color:#E2FAF6;padding:1px 4px;border-radius:3px;font-weight:700}
+  .stat-table-wrap{overflow:auto;border:2px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-top:10px}
+  .stat-table{width:100%;border-collapse:collapse;font-size:.84rem;text-align:left}
+  .stat-table th,.stat-table td{padding:8px 11px;border-bottom:1.5px solid var(--hairline)}
+  .stat-table th{background:var(--tint-sky);font-family:var(--font-mono);font-size:.78rem;border-bottom:2px solid var(--border);color:#44ECD6}
+  .stat-table tr:last-child td{border-bottom:none}
 
   .ed-list{display:grid;gap:12px;margin-top:10px}
   .ed-item{background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
@@ -395,7 +417,7 @@
     <button data-screen="home" class="active">Home</button>
     <button data-screen="library">Library</button>
     <button data-screen="quest">My Quest</button>
-    <button data-screen="upload">Upload</button>
+    <button data-screen="upload">Textbooks</button>
     <button data-screen="editor">Editor</button>
     <button data-screen="review">Review</button>
     <button data-screen="dashboard">Progress</button>
@@ -429,7 +451,7 @@
           </div>
         </div>
         <div class="hero-art">
-          <img src="/public/assets/aistudio/image_2e42d0b4.png" alt="Sunlit mountain path winding through deep pine trees under golden clouds" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
+          <img src="/src/assets/images/hero_study_trail_1795446682631.jpg" alt="Sunlit forest trail winding past pines toward a mossy hilltop study tower under golden clouds" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');" />
           <div class="art-fallback hidden">
             <div>
               <div style="font-size:1.3rem;font-weight:700">The Pine Trail Study Hall</div>
@@ -477,6 +499,7 @@
         </div>
       </div>
       <div id="adaptiveBox" style="margin-top:16px"></div>
+      <div id="questRagBox" class="hidden" style="margin-top:14px"></div>
       <div class="grid two" style="margin-top:20px">
         <div><h3>Concept mastery</h3><div class="mastery-list" id="masteryList"></div></div>
         <div><h3>Current missions</h3><div class="missions" id="missionList"></div></div>
@@ -510,7 +533,7 @@
   <section id="screen-dashboard" class="screen hidden">
     <div class="card">
       <div class="banner-strip">
-        <img src="/public/assets/aistudio/image_f9d4df85.png" alt="Warm amber sunset over snowy forest peaks" referrerpolicy="no-referrer" />
+        <img src="/public/assets/aistudio/image_f609d786.png" alt="Glowing sunset horizon over desert dunes and ancient ruins" referrerpolicy="no-referrer" />
       </div>
       <h1>Learning measurement</h1>
       <p class="lede">Judge a method by learning, not by how much a student likes the interface. Four outcomes matter.</p>
@@ -532,20 +555,85 @@
     </div>
   </section>
 
-  <!-- UPLOAD -->
+  <!-- UPLOAD / TEXTBOOKS & LOCAL RAG -->
   <section id="screen-upload" class="screen hidden">
     <div class="card">
-      <h1>Upload a PDF</h1>
-      <p class="lede">Extract text locally with PDF.js — no AI, no server. You then turn that text into structured knowledge units in the Editor.</p>
-      <div class="upload-zone" id="uploadZone">
-        <div class="big">📄</div>
-        <div style="font-weight:700;margin-top:6px">Drop a PDF here, or click to choose</div>
-        <div class="small muted" style="margin-top:4px">Text-based PDFs work best. Scanned images need OCR (not included).</div>
-        <input type="file" id="fileInput" accept="application/pdf" class="hidden" />
+      <div class="row">
+        <div>
+          <div class="meta-line" style="margin-bottom:6px">
+            <span>PDF textbooks</span><span class="sep" aria-hidden="true">·</span>
+            <span>Excel &amp; CSV sheets</span><span class="sep" aria-hidden="true">·</span>
+            <span>Images (OCR) &amp; JSON stats</span><span class="sep" aria-hidden="true">·</span>
+            <span>Hybrid BM25 + NLP + SQLite RAG</span>
+          </div>
+          <h1 style="margin:0">Textbooks &amp; Knowledge RAG</h1>
+        </div>
+        <select id="ragTargetSelect" style="width:auto;min-width:240px" aria-label="Target topic for uploaded sources"></select>
       </div>
-      <div id="pdfStatus" class="small muted" style="margin-top:12px"></div>
-      <div id="pdfResult" class="hidden" style="margin-top:16px">
-        <div class="row"><h3 style="margin:0">Extracted text</h3><button class="btn sm" id="createTopicBtn">Create a topic from this text</button></div>
+      <p class="lede" style="margin-top:10px">Import your textbooks, spreadsheets, charts, or study screenshots. Sources are cleaned, split by page and section, analyzed with YAKE/TF-IDF/TextRank NLP, and indexed in SQLite for hybrid BM25 + semantic retrieval — zero external AI API needed.</p>
+
+      <div id="newTopicTitleRow" style="margin:14px 0">
+        <label for="newTopicTitleInput" style="margin-top:0">New topic title (when creating a new topic)</label>
+        <input type="text" id="newTopicTitleInput" placeholder="e.g. Organic Chemistry Ch. 4, Macroeconomics Data, Cell Biology..." />
+      </div>
+
+      <div class="upload-zone" id="uploadZone">
+        <div class="big">📚</div>
+        <div style="font-weight:700;margin-top:6px">Drop PDFs, Excel sheets (.xlsx/.xls/.csv), images (.png/.jpg), or stats (.json/.txt) here</div>
+        <div class="small muted" style="margin-top:4px">Select multiple files at once or add more anytime. Images run local OCR &amp; visual stat analysis; Excel sheets extract tables, min/max/mean stats &amp; graphs.</div>
+        <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv,.tsv,.png,.jpg,.jpeg,.webp,.gif,.txt,.md,.json" multiple class="hidden" />
+      </div>
+
+      <details style="margin-top:14px;background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:12px 15px">
+        <summary style="cursor:pointer;font-weight:700;font-size:.92rem">Or paste textbook notes / CSV stats directly</summary>
+        <div style="margin-top:10px">
+          <input type="text" id="pasteSourceName" placeholder="Source label (e.g. Chapter 3 Notes or Lab Measurements.csv)" />
+          <textarea id="pasteSourceText" style="margin-top:8px;min-height:110px" placeholder="Paste textbook passages (e.g. 'Enzyme: a protein catalyst...') or CSV rows ('Time,Rate\n0,12\n10,28')"></textarea>
+          <div class="row" style="margin-top:10px;justify-content:flex-start">
+            <button class="btn secondary sm" id="ingestPasteBtn">Index pasted text / CSV</button>
+          </div>
+        </div>
+      </details>
+
+      <div id="pdfStatus" class="small" style="margin-top:12px;font-weight:600;color:var(--ink)"></div>
+
+      <!-- Indexed Sources & Extracted Stats -->
+      <div id="ragSourcesWrap" class="hidden" style="margin-top:22px;padding-top:18px;border-top:2px solid var(--hairline)">
+        <div class="row">
+          <div>
+            <h2 style="margin:0">Indexed sources &amp; extracted data</h2>
+            <div class="meta-line" id="ragIndexStats" style="margin:4px 0 0"></div>
+          </div>
+          <div class="row" style="gap:10px">
+            <button class="btn good sm" id="autoBuildBtn">Auto-extract concepts, graph &amp; quiz</button>
+            <button class="btn secondary sm" id="openRagInEditorBtn">Edit knowledge units</button>
+            <button class="btn sm" id="launchRagTopicBtn">Study this topic →</button>
+          </div>
+        </div>
+        <div id="ragDocsGrid" class="rag-grid"></div>
+        <div id="ragNlpInsights" style="margin-top:16px"></div>
+        <div id="ragQuizPreviewWrap" style="margin-top:20px"></div>
+        <div id="ragExtractedStatsBox" style="margin-top:16px"></div>
+      </div>
+
+      <!-- Local RAG Query Panel -->
+      <div id="ragQueryWrap" class="hidden" style="margin-top:24px;padding-top:18px;border-top:2px solid var(--hairline)">
+        <h2 style="margin:0 0 6px">Search &amp; retrieve from your knowledge base</h2>
+        <p class="small muted" style="margin-top:0">Query across all indexed PDF pages, Excel sheets, image OCR text, and extracted statistics using Hybrid RAG (BM25 + semantic vector similarity). Add any retrieved passage straight into Concepts or Quiz questions.</p>
+        <div class="row" style="margin-top:10px;flex-wrap:nowrap">
+          <input type="text" id="ragQueryInput" placeholder="Ask a question or search keywords (e.g. 'light intensity', 'mean growth', 'membrane')..." />
+          <button class="btn sm" id="ragSearchBtn">Retrieve</button>
+        </div>
+        <div id="ragQuickTerms" class="tabs" style="margin-top:10px"></div>
+        <div id="ragResultsBox" style="margin-top:14px;display:grid;gap:12px"></div>
+      </div>
+
+      <!-- Legacy preview container kept hidden for quick raw text inspection -->
+      <div id="pdfResult" class="hidden" style="margin-top:18px">
+        <div class="row">
+          <h3 style="margin:0">Extracted source text preview</h3>
+          <button class="btn secondary sm" id="createTopicBtn">Save as standalone topic</button>
+        </div>
         <div class="doc-text" id="pdfText" style="margin-top:10px"></div>
       </div>
     </div>
@@ -558,24 +646,26 @@
         <h1 style="margin:0">Knowledge-unit editor</h1>
         <select id="editorTopicSelect" style="width:auto;min-width:220px"></select>
       </div>
-      <p class="lede" style="margin-top:8px">Edit the structured knowledge behind <span id="editorTopicName"></span>: concepts, relationships and quiz questions. Changes are saved locally and drive every archetype journey.</p>
+      <p class="lede" style="margin-top:8px">Edit the structured knowledge behind <span id="editorTopicName"></span>: concepts, relationships, quantitative graph data, and quiz questions. Changes are saved locally and drive every archetype journey.</p>
       <div class="tabs" id="editorTabs">
         <button class="tab on" data-tab="concepts">Concepts</button>
         <button class="tab" data-tab="relationships">Relationships</button>
         <button class="tab" data-tab="quiz">Quiz questions</button>
+        <button class="tab" data-tab="graph">Data &amp; Graph</button>
         <button class="tab" data-tab="details">Topic details</button>
         <button class="tab" data-tab="source">Source text</button>
       </div>
       <div id="edConcepts" class="ed-panel"></div>
       <div id="edRelationships" class="ed-panel hidden"></div>
       <div id="edQuiz" class="ed-panel hidden"></div>
+      <div id="edGraph" class="ed-panel hidden"></div>
       <div id="edDetails" class="ed-panel hidden"></div>
       <div id="edSource" class="ed-panel hidden"></div>
       <div class="row" style="margin-top:20px;justify-content:flex-start">
         <button class="btn good" id="edSaveBtn">Save changes</button>
         <button class="btn secondary" id="edResetBtn">Reset to sample</button>
       </div>
-      <div class="note">The Editor edits the <em>knowledge units</em> only. Automatic concept extraction and question generation from raw text is the Phase 2 AI module — this is the "AI optional" boundary.</div>
+      <div class="note">The Editor edits the <em>knowledge units</em> only. Retrieval, spreadsheet parsing, OCR, and rule-based extraction run locally without any external AI API.</div>
     </div>
   </section>
 
@@ -603,6 +693,7 @@
 
 <script src="data.js"></script>
 <script src="engine.js"></script>
+<script src="rag.js"></script>
 <script src="renderers.js"></script>
 <script src="features.js"></script>
 </body>

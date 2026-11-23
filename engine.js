@@ -24,11 +24,27 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
 function store() {
   try {
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
+      var payload = {
         archetype: state.archetype, activeTopicId: state.activeTopicId, xp: state.xp,
         progress: state.progress, edits: state.edits, customTopics: state.customTopics,
         srs: state.srs, plan: state.plan, assessmentProfile: state.assessmentProfile
-      }));
+      };
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(payload));
+      } catch (quotaErr) {
+        // Fallback: strip large base64 thumbnails / oversize source_text if storage quota is tight
+        var compact = clone(payload);
+        (compact.customTopics || []).forEach(function (t) {
+          if (t.source_text && t.source_text.length > 16000) t.source_text = t.source_text.slice(0, 16000);
+          (t.ragDocs || []).forEach(function (d) { if (d.thumb) delete d.thumb; });
+        });
+        Object.keys(compact.edits || {}).forEach(function (id) {
+          var ed = compact.edits[id];
+          if (ed.source_text && ed.source_text.length > 16000) ed.source_text = ed.source_text.slice(0, 16000);
+          (ed.ragDocs || []).forEach(function (d) { if (d.thumb) delete d.thumb; });
+        });
+        localStorage.setItem(STORE_KEY, JSON.stringify(compact));
+      }
     }
   } catch (e) {}
 }
@@ -64,6 +80,16 @@ function getTopic(id) {
     if (ed.quiz != null) merged.quiz = ed.quiz;
     if (ed.relationships != null) merged.relationships = ed.relationships;
     if (ed.source_text != null) merged.source_text = ed.source_text;
+    if (ed.graph != null) merged.graph = ed.graph;
+    if (ed.process != null) merged.process = ed.process;
+    if (ed.diagram != null) merged.diagram = ed.diagram;
+    if (ed.story != null) merged.story = ed.story;
+    if (ed.explain != null) merged.explain = ed.explain;
+    if (ed.ragDocs != null) merged.ragDocs = ed.ragDocs;
+    if (ed.ragChunks != null) merged.ragChunks = ed.ragChunks;
+    if (ed.extractedStats != null) merged.extractedStats = ed.extractedStats;
+    if (ed.hierarchy != null) merged.hierarchy = ed.hierarchy;
+    if (ed.nlpKeywords != null) merged.nlpKeywords = ed.nlpKeywords;
   }
   return merged;
 }
@@ -191,62 +217,62 @@ function topicSceneSvg(artKey) {
   var svgOpen = '<svg viewBox="0 0 320 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">';
   if (artKey === "photosynthesis") {
     return svgOpen +
-      '<rect width="320" height="240" fill="#B8D0CC"/>' +
-      '<ellipse cx="236" cy="58" rx="68" ry="52" fill="#F2B44B" opacity=".55"/>' +
-      '<circle cx="236" cy="58" r="34" fill="#FCEB9C"/>' +
-      '<path d="M0 154 Q80 120 170 144 T320 132 L320 240 L0 240 Z" fill="#9EB977" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M0 176 Q110 148 210 178 T320 165 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<ellipse cx="185" cy="212" rx="110" ry="26" fill="#7DA8A4" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<ellipse cx="152" cy="210" rx="18" ry="6" fill="#7EA85B" stroke="#2C261F" stroke-width="2"/>' +
-      '<ellipse cx="212" cy="215" rx="14" ry="5" fill="#9EB977" stroke="#2C261F" stroke-width="2"/>' +
-      '<rect x="58" y="96" width="18" height="88" rx="4" fill="#8C6A4A" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M67 28 L108 122 L26 122 Z" fill="#4A6F4E" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M67 54 L116 146 L18 146 Z" fill="#5E8558" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M236 96 L210 145 M236 96 L248 152 M236 96 L276 138" stroke="#FCEB9C" stroke-width="3" stroke-linecap="round" opacity=".85"/>' +
+      '<rect width="320" height="240" fill="#0B2E2D"/>' +
+      '<ellipse cx="236" cy="58" rx="68" ry="52" fill="#19C2AE" opacity=".28"/>' +
+      '<circle cx="236" cy="58" r="32" fill="#3CE8D2"/>' +
+      '<path d="M0 154 Q80 120 170 144 T320 132 L320 240 L0 240 Z" fill="#124A40" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M0 176 Q110 148 210 178 T320 165 L320 240 L0 240 Z" fill="#0E3B33" stroke="#041414" stroke-width="2.5"/>' +
+      '<ellipse cx="185" cy="212" rx="110" ry="26" fill="#156360" stroke="#041414" stroke-width="2.5"/>' +
+      '<ellipse cx="152" cy="210" rx="18" ry="6" fill="#198F73" stroke="#041414" stroke-width="2"/>' +
+      '<ellipse cx="212" cy="215" rx="14" ry="5" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
+      '<rect x="58" y="96" width="18" height="88" rx="4" fill="#18423F" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M67 28 L108 122 L26 122 Z" fill="#0D594B" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M67 54 L116 146 L18 146 Z" fill="#157A67" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M236 96 L210 145 M236 96 L248 152 M236 96 L276 138" stroke="#3CE8D2" stroke-width="3" stroke-linecap="round" opacity=".75"/>' +
       '</svg>';
   }
   if (artKey === "newton2") {
     return svgOpen +
-      '<rect width="320" height="240" fill="#B8D0CC"/>' +
-      '<path d="M32 138 L94 42 L152 138 Z" fill="#8A999A" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M94 42 L116 78 L98 72 L86 84 L74 72 Z" fill="#FCF9EE" stroke="#2C261F" stroke-width="2"/>' +
-      '<path d="M168 140 L236 52 L298 140 Z" fill="#7C8D90" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M236 52 L256 80 L238 75 L224 84 L216 74 Z" fill="#FCF9EE" stroke="#2C261F" stroke-width="2"/>' +
-      '<path d="M0 132 Q84 108 168 136 T320 124 L320 240 L0 240 Z" fill="#B2C97D" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M0 162 Q100 132 196 172 T320 154 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M18 240 Q120 184 260 202 L320 212 L320 240 Z" fill="#A68258" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<rect x="138" y="156" width="52" height="28" rx="6" fill="#F2B44B" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<circle cx="150" cy="188" r="9" fill="#57534A" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<circle cx="178" cy="188" r="9" fill="#57534A" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M94 170 L128 170 M120 163 L129 170 L120 177" stroke="#2C261F" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect width="320" height="240" fill="#0A2B2B"/>' +
+      '<path d="M32 138 L94 42 L152 138 Z" fill="#134545" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M94 42 L116 78 L98 72 L86 84 L74 72 Z" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
+      '<path d="M168 140 L236 52 L298 140 Z" fill="#0F3B3B" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M236 52 L256 80 L238 75 L224 84 L216 74 Z" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
+      '<path d="M0 132 Q84 108 168 136 T320 124 L320 240 L0 240 Z" fill="#135247" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M0 162 Q100 132 196 172 T320 154 L320 240 L0 240 Z" fill="#0E3D36" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M18 240 Q120 184 260 202 L320 212 L320 240 Z" fill="#092423" stroke="#041414" stroke-width="2.5"/>' +
+      '<rect x="138" y="156" width="52" height="28" rx="6" fill="#19C2AE" stroke="#041414" stroke-width="2.5"/>' +
+      '<circle cx="150" cy="188" r="9" fill="#0E3433" stroke="#041414" stroke-width="2.5"/>' +
+      '<circle cx="178" cy="188" r="9" fill="#0E3433" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M94 170 L128 170 M120 163 L129 170 L120 177" stroke="#3CE8D2" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
       '</svg>';
   }
   if (artKey === "supply-demand") {
     return svgOpen +
-      '<rect width="320" height="240" fill="#E39054"/>' +
-      '<path d="M28 54 Q66 36 106 54 Q130 58 120 70 L20 70 Q12 58 28 54 Z" fill="#F2C894" stroke="#2C261F" stroke-width="2"/>' +
-      '<path d="M196 42 Q232 24 268 42 Q286 48 276 58 L190 58 Q182 48 196 42 Z" fill="#F2C894" stroke="#2C261F" stroke-width="2"/>' +
-      '<path d="M0 144 L76 74 L144 136 L220 68 L320 146 L320 240 L0 240 Z" fill="#8C6A4A" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M0 166 Q90 132 174 166 T320 156 L320 240 L0 240 Z" fill="#B6B6D4" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<path d="M0 192 Q115 168 220 198 T320 184 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
-      '<line x1="160" y1="108" x2="160" y2="184" stroke="#2C261F" stroke-width="3.5"/>' +
-      '<line x1="108" y1="120" x2="212" y2="120" stroke="#2C261F" stroke-width="3.5" stroke-linecap="round"/>' +
-      '<path d="M94 148 Q108 164 122 148 Z" fill="#FCEB9C" stroke="#2C261F" stroke-width="2"/>' +
-      '<path d="M198 148 Q212 164 226 148 Z" fill="#DCE9E6" stroke="#2C261F" stroke-width="2"/>' +
-      '<line x1="108" y1="120" x2="96" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
-      '<line x1="108" y1="120" x2="120" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
-      '<line x1="212" y1="120" x2="200" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
-      '<line x1="212" y1="120" x2="224" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
+      '<rect width="320" height="240" fill="#0B302E"/>' +
+      '<path d="M28 54 Q66 36 106 54 Q130 58 120 70 L20 70 Q12 58 28 54 Z" fill="#165753" stroke="#041414" stroke-width="2"/>' +
+      '<path d="M196 42 Q232 24 268 42 Q286 48 276 58 L190 58 Q182 48 196 42 Z" fill="#165753" stroke="#041414" stroke-width="2"/>' +
+      '<path d="M0 144 L76 74 L144 136 L220 68 L320 146 L320 240 L0 240 Z" fill="#103B39" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M0 166 Q90 132 174 166 T320 156 L320 240 L0 240 Z" fill="#14504D" stroke="#041414" stroke-width="2.5"/>' +
+      '<path d="M0 192 Q115 168 220 198 T320 184 L320 240 L0 240 Z" fill="#0D4035" stroke="#041414" stroke-width="2.5"/>' +
+      '<line x1="160" y1="108" x2="160" y2="184" stroke="#3CE8D2" stroke-width="3.5"/>' +
+      '<line x1="108" y1="120" x2="212" y2="120" stroke="#3CE8D2" stroke-width="3.5" stroke-linecap="round"/>' +
+      '<path d="M94 148 Q108 164 122 148 Z" fill="#19C2AE" stroke="#041414" stroke-width="2"/>' +
+      '<path d="M198 148 Q212 164 226 148 Z" fill="#2EE09A" stroke="#041414" stroke-width="2"/>' +
+      '<line x1="108" y1="120" x2="96" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
+      '<line x1="108" y1="120" x2="120" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
+      '<line x1="212" y1="120" x2="200" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
+      '<line x1="212" y1="120" x2="224" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
       '</svg>';
   }
   return svgOpen +
-    '<rect width="320" height="240" fill="#B8D0CC"/>' +
-    '<circle cx="160" cy="70" r="46" fill="#FCEB9C" stroke="#2C261F" stroke-width="2"/>' +
-    '<path d="M0 156 Q80 120 160 148 T320 136 L320 240 L0 240 Z" fill="#9EB977" stroke="#2C261F" stroke-width="2.5"/>' +
-    '<path d="M0 182 Q110 154 220 186 T320 172 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
-    '<path d="M68 78 L98 158 L38 158 Z" fill="#4A6F4E" stroke="#2C261F" stroke-width="2.5"/>' +
-    '<path d="M252 68 L286 156 L218 156 Z" fill="#5E8558" stroke="#2C261F" stroke-width="2.5"/>' +
-    '<path d="M126 240 Q152 184 194 166" stroke="#A68258" stroke-width="18" fill="none" stroke-linecap="round"/>' +
+    '<rect width="320" height="240" fill="#0A2B2A"/>' +
+    '<circle cx="160" cy="70" r="44" fill="#19C2AE" opacity=".32" stroke="#3CE8D2" stroke-width="2"/>' +
+    '<path d="M0 156 Q80 120 160 148 T320 136 L320 240 L0 240 Z" fill="#124A40" stroke="#041414" stroke-width="2.5"/>' +
+    '<path d="M0 182 Q110 154 220 186 T320 172 L320 240 L0 240 Z" fill="#0D3830" stroke="#041414" stroke-width="2.5"/>' +
+    '<path d="M68 78 L98 158 L38 158 Z" fill="#0E594A" stroke="#041414" stroke-width="2.5"/>' +
+    '<path d="M252 68 L286 156 L218 156 Z" fill="#157562" stroke="#041414" stroke-width="2.5"/>' +
+    '<path d="M126 240 Q152 184 194 166" stroke="#185C57" stroke-width="18" fill="none" stroke-linecap="round"/>' +
     '</svg>';
 }
 
@@ -416,6 +442,22 @@ function renderQuest() {
     }
   }
 
+  var qrag = $("questRagBox");
+  if (qrag) {
+    var chunkCount = (T.ragChunks || []).length;
+    var docCount = (T.ragDocs || []).length;
+    if (chunkCount > 0 || docCount > 0) {
+      qrag.classList.remove("hidden");
+      qrag.innerHTML = '<div class="ed-item" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--tint-mint)">' +
+        '<div style="flex:1"><span class="status-text done" style="margin-right:10px">Textbook RAG ·</span><span class="small">' + docCount + ' source file(s), ' + chunkCount + ' indexed passage(s), and ' + (T.extractedStats || []).length + ' extracted metric(s) attached to this chapter.</span></div>' +
+        '<button class="btn secondary sm" id="openQuestRagBtn">Search textbooks →</button></div>';
+      $("openQuestRagBtn").addEventListener("click", function () { showScreen("upload"); });
+    } else {
+      qrag.classList.add("hidden");
+      qrag.innerHTML = "";
+    }
+  }
+
   var ml = $("masteryList"); ml.innerHTML = "";
   T.concepts.forEach(function (c) {
     var m = p.mastery[c.id] || 0;
@@ -535,23 +577,23 @@ function renderDashboard() {
 function drawEngagement(done, total) {
   var c = $("engagementChart"); if (!c || !window.Chart) return;
   try { if (charts.eng) charts.eng.destroy(); charts.eng = new Chart(c, {
-    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#7EA85B", "#F4EED9"], borderColor: "#2C261F", borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } } } }); } catch (e) {}
+    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#19C2AE", "#103433"], borderColor: "#27706A", borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } } } }); } catch (e) {}
 }
 function drawImmediate(imm) {
   var c = $("immediateChart"); if (!c || !window.Chart) return;
   try { if (charts.imm) charts.imm.destroy(); charts.imm = new Chart(c, {
-    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#558E9B", borderColor: "#2C261F", borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } } }); } catch (e) {}
+    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#19C2AE", borderColor: "#27706A", borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } } }); } catch (e) {}
 }
 function drawRetention(imm, ret, transfer) {
   var c = $("retentionChart"); if (!c || !window.Chart) return;
   try { if (charts.ret) charts.ret.destroy(); charts.ret = new Chart(c, {
     type: "bar",
     data: { labels: ["Immediate", "Delayed retention", "Transfer"], datasets: [
-      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#D6CCB5", borderColor: "#2C261F", borderWidth: 2 },
-      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#7EA85B", borderColor: "#2C261F", borderWidth: 2 } ] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#2C261F", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#2C261F" }, grid: { color: "rgba(44,38,31,.08)" } } } } }); } catch (e) {}
+      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#158468", borderColor: "#27706A", borderWidth: 2 },
+      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#19C2AE", borderColor: "#27706A", borderWidth: 2 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } } }); } catch (e) {}
 }
 
 /* quiz engine */
@@ -563,7 +605,7 @@ function makeQuiz(questions, handlers) {
     wrap.innerHTML = "";
     if (!questions.length) { wrap.innerHTML = '<div class="note">No quiz questions yet - add them in the Editor.</div>'; return; }
     var q = questions[idx];
-    wrap.appendChild(el("div", "small muted", "Question " + (idx + 1) + " of " + questions.length));
+    wrap.appendChild(el("div", "small muted", "Question " + (idx + 1) + " of " + questions.length + (q.pageRef ? (" · Source: " + esc(q.pageRef)) : "")));
     wrap.appendChild(el("div", "", '<div style="font-size:1.08rem;font-weight:600;margin:6px 0 14px">' + esc(q.q) + "</div>"));
     var box = el("div", "opts");
     var answered = false;
@@ -579,7 +621,14 @@ function makeQuiz(questions, handlers) {
         p.quizLog.total++; if (i === q.a) p.quizLog.correct++;
         store();
         if (handlers.record) handlers.record(i === q.a);
-        var fb = el("div", "fb " + (i === q.a ? "good" : "bad"), "<strong>" + (i === q.a ? "Correct. " : "Not quite. ") + "</strong>" + esc(q.why || ""));
+        var evidenceHtml = "";
+        if (q.pageRef || q.evidence) {
+          evidenceHtml = '<div class="small" style="margin-top:8px;padding-top:8px;border-top:1.5px solid var(--hairline)">' +
+            (q.pageRef ? ('<strong>Page Reference:</strong> ' + esc(q.pageRef) + '<br>') : "") +
+            (q.evidence ? ('<strong>Evidence:</strong> "' + esc(q.evidence) + '"') : "") +
+            "</div>";
+        }
+        var fb = el("div", "fb " + (i === q.a ? "good" : "bad"), "<strong>" + (i === q.a ? "Correct. " : "Not quite. ") + "</strong>" + esc(q.why || "") + evidenceHtml);
         wrap.appendChild(fb);
         var next = el("button", "btn sm", idx < questions.length - 1 ? "Next question" : "See result");
         next.style.marginTop = "14px";

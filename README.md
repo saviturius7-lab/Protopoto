@@ -58,8 +58,14 @@ Local PDF.js Text Extraction  ──►  Knowledge-Unit Database
    - **Chart.js** quantitative graphs & mastery breakdowns
    - Interactive parameter-tuning simulations (*Greenhouse manager*, *Mission control*, *Market maker*)
    - Quizzes, retrieval flashcards, worked examples, guided fill-in-the-blanks, progressive hints, and self-explanation keyword checks
-6. **Upload (PDF.js)**: Drag-and-drop local PDF parsing that extracts raw text page-by-page without sending files to an external server or AI API.
-7. **Knowledge-Unit Editor**: Create or customize concepts, directed relationships, multiple-choice quiz items, topic metadata, and source text.
+6. **Textbooks & Knowledge RAG (`Lightweight NLP + Hybrid RAG`)**: Multi-file upload and direct paste workspace backed by a Python NLP + SQLite engine (`backend/nlp_engine.py`, FastAPI service `backend/api.py`, and Express `/api/nlp/*` bridge):
+   - **PDFs** (page-by-page extraction via **PDF.js** + optional **PyMuPDF**)
+   - **Excel & CSV/TSV** (multi-sheet parsing via **SheetJS**, column min/max/mean/sum stats, row batching, and automatic **Chart.js** graph generation)
+   - **Images & Stats** (canvas visual analysis for resolution/brightness/contrast/palette, local browser OCR via **Tesseract.js**, editable image notes, and numeric stat extraction; plus structured **JSON** stats)
+   - **Text Processing & NLP Analysis**: De-hyphenation, page detection, heading/section splitting, **YAKE + TF-IDF + TextRank** keyphrase extraction, linguistic definition & entity detection, and **Topic Hierarchy** mapping.
+   - **Hybrid Retrieval (SQLite)**: Combines **BM25** lexical ranking (`rank-bm25` / pure-Python BM25) with lightweight semantic vector cosine similarity stored in `backend/data/unlocked_rag.db`.
+   - **Evidence-Validated Quiz Generation**: Template-based definition & cloze quiz generator attaching exact `pageRef` citations and supporting `evidence` quotes to every question.
+7. **Knowledge-Unit Editor**: Create or customize concepts, directed relationships, quantitative **Data & Graph** series, multiple-choice quiz items, topic metadata, and source text.
 8. **Review (SRS)**: Spaced-repetition deck with masked definitions, self-grading, XP rewards, and per-concept interval schedules.
 9. **Progress Dashboard**: Tracks activity completion, immediate recall accuracy, projected delayed retention/transfer comparisons, and archetype vs. content representation alignment.
 
@@ -69,15 +75,21 @@ Local PDF.js Text Extraction  ──►  Knowledge-Unit Database
 
 ```text
 .
-├── server.js                 # Express static server (0.0.0.0:3000)
+├── server.js                 # Express server (0.0.0.0:3000) + /api/nlp/* Python bridge
+├── backend/
+│   ├── nlp_engine.py         # Lightweight NLP (YAKE/TF-IDF/TextRank), SQLite Hybrid RAG & quiz generator
+│   ├── api.py                # FastAPI Python API server exposing /api/nlp/* endpoints
+│   └── requirements.txt      # Optional Python stack (FastAPI, PyMuPDF, NLTK, YAKE, spaCy, rank-bm25, NetworkX)
 ├── index.html                # Main adaptive learning engine UI & styles
 ├── assessment.html           # Standalone 24-question archetype assessment
 ├── data.js                   # Sample topics, 8 archetype journeys, representation rules
-├── engine.js                 # State management, localStorage persistence, SRS, quest & charts
+├── engine.js                 # State management, localStorage persistence, SRS, quest & quiz evidence UI
+├── rag.js                    # Multi-modal extractors (PDF, Excel/CSV, Image OCR/stats, JSON) & RAG API client
 ├── renderers.js              # Activity renderers (SVG, Mermaid, Vis.js, Chart.js, Canvas sims)
-├── features.js               # PDF.js extraction, Knowledge-Unit Editor, SRS UI, app init
-├── public/assets/aistudio/   # Reference landscape paintings used across hero & banner views
-├── package.json              # Scripts (dev, start, lint, build) and Express dependency
+├── features.js               # RAG workspace UI, Knowledge-Unit Editor, SRS UI, app init
+├── src/assets/images/        # Matte-painting hero and topic illustrations
+├── public/assets/aistudio/   # Reference landscape paintings
+├── package.json              # Scripts (dev, start, lint, build) and Express/SheetJS dependencies
 ├── .env.example              # Default environment configuration (PORT=3000)
 └── prototype_v0.html         # Original single-file v0 reference snapshot
 ```
@@ -88,6 +100,7 @@ Local PDF.js Text Extraction  ──►  Knowledge-Unit Database
 
 ### Prerequisites
 - Node.js 18+ (for Express server and syntax checks)
+- Python 3.10+ (used automatically by `/api/nlp/*` for NLP extraction, SQLite indexing, and Hybrid RAG)
 
 ### Installation & Running Locally
 
@@ -98,8 +111,15 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
+*(Optional)* To run the standalone Python FastAPI service directly or install optional heavy NLP libraries (`pymupdf`, `yake`, `spacy`, `rank-bm25`, `networkx`):
+
+```bash
+pip install -r backend/requirements.txt
+uvicorn backend.api:app --reload --port 8000
+```
+
 ### Available Scripts
 - `npm run dev` — Starts the Express server on port `3000` (or `process.env.PORT`).
 - `npm start` — Production start command (`node server.js`).
-- `npm run lint` — Runs `node --check` syntax validation across `server.js`, `data.js`, `engine.js`, `renderers.js`, and `features.js`.
+- `npm run lint` — Runs `node --check` syntax validation across `server.js`, `data.js`, `engine.js`, `rag.js`, `renderers.js`, and `features.js`.
 - `npm run build` — Verifies all runtime scripts pass `node --check`.
