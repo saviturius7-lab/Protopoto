@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Unlocked — Learner Archetype Assessment</title>
+<style>
+  :root {
+    --bg: #0f1220;
+    --surface: #181c2f;
+    --surface-2: #20253d;
+    --border: #2b3152;
+    --text: #e8ebf5;
+    --muted: #98a0c0;
+    --accent: #6c8cff;
+    --accent-2: #4de0c1;
+    --danger: #ff6b8a;
+    --radius: 14px;
+    --shadow: 0 12px 40px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2140 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 28px 20px 80px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; }
+  .brand .dot { width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),var(--accent-2)); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+  }
+  h1 { font-size: 1.7rem; line-height: 1.25; margin: 18px 0 8px; }
+  h2 { font-size: 1.25rem; margin: 0 0 10px; }
+  p { color: var(--muted); }
+  .lede { font-size: 1.05rem; color: #c3c9e6; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+  .pill {
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 999px; font-size: .82rem; color: #c3c9e6;
+  }
+  .note {
+    background: #1d2340; border: 1px dashed var(--border);
+    border-radius: 12px; padding: 14px 16px; font-size: .9rem; color: var(--muted);
+    margin: 18px 0;
+  }
+  .btn {
+    appearance: none; border: 1px solid transparent; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), #8a7bff);
+    color: #0a0d18; font-weight: 700; font-size: 1rem;
+    padding: 13px 22px; border-radius: 12px; transition: transform .06s ease, filter .15s ease;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); font-weight: 600; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .progress { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 6px 0 22px; }
+  .progress > div { height: 100%; width: 0%; background: linear-gradient(90deg,var(--accent),var(--accent-2)); transition: width .25s ease; }
+  .qmeta { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: 10px; }
+  .question { font-size: 1.18rem; font-weight: 600; margin: 4px 0 20px; color: #f2f4ff; }
+  .options { display: grid; gap: 10px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 12px; padding: 14px 16px; cursor: pointer;
+    font-size: .98rem; transition: border-color .12s ease, background .12s ease, transform .06s ease;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt:active { transform: translateY(1px); }
+  .opt .k {
+    flex: 0 0 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+    background: #11152a; border: 1px solid var(--border); font-weight: 700; font-size: .85rem; color: var(--muted);
+  }
+  .opt.selected { border-color: var(--accent); background: #1b2142; }
+  .opt.selected .k { background: var(--accent); color: #0a0d18; border-color: var(--accent); }
+  .nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 26px; }
+  .nav .spacer { flex: 1; }
+  .scale-hint { font-size: .82rem; color: var(--muted); margin-top: 14px; }
+  /* context */
+  .ctx-options { display: grid; gap: 8px; margin: 6px 0 6px; }
+  /* results */
+  .result-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .result-title { font-size: 1.7rem; font-weight: 800; margin: 0; }
+  .badge {
+    display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .78rem;
+    font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  }
+  .badge.primary { background: rgba(108,140,255,.18); color: #a9bdff; border: 1px solid rgba(108,140,255,.4); }
+  .badge.blended { background: rgba(77,224,193,.16); color: #8cf0db; border: 1px solid rgba(77,224,193,.4); }
+  .badge.multi { background: rgba(255,190,90,.16); color: #ffd28c; border: 1px solid rgba(255,190,90,.4); }
+  .badge.flexible { background: rgba(200,150,255,.16); color: #d6b6ff; border: 1px solid rgba(200,150,255,.4); }
+  .badge.insufficient { background: rgba(255,107,138,.16); color: #ff9db3; border: 1px solid rgba(255,107,138,.4); }
+  .scores { display: grid; gap: 12px; margin: 22px 0 6px; }
+  .score-row { display: grid; grid-template-columns: 150px 1fr 64px; align-items: center; gap: 12px; }
+  .score-row .name { font-size: .9rem; font-weight: 600; }
+  .bar { height: 12px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg,var(--accent),var(--accent-2)); transition: width .6s cubic-bezier(.2,.7,.2,1); }
+  .bar.top > div { background: linear-gradient(90deg,#8a7bff,#4de0c1); }
+  .score-row .val { text-align: right; font-variant-numeric: tabular-nums; color: #cdd3ee; font-weight: 700; font-size: .9rem; }
+  .detail-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 8px; }
+  .detail {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+  }
+  .detail h3 { margin: 0 0 6px; font-size: 1.02rem; }
+  .detail .tag { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .detail .tools { margin-top: 8px; font-size: .9rem; color: #cdd3ee; }
+  .detail .seq { margin-top: 6px; font-size: .9rem; color: var(--accent-2); font-weight: 600; }
+  .meaning { margin-top: 20px; }
+  .meaning h3 { margin-bottom: 6px; }
+  pre {
+    background: #0b0e1c; border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; overflow: auto; font-size: .82rem; color: #cdd3ee; line-height: 1.5;
+  }
+  .disclaimer { font-size: .82rem; color: var(--muted); margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
+  .hidden { display: none !important; }
+  .footer-note { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 26px; }
+  @media (max-width: 560px) {
+    .score-row { grid-template-columns: 110px 1fr 50px; gap: 8px; }
+    .score-row .name { font-size: .82rem; }
+    .card { padding: 20px; }
+    h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="dot"></span> Unlocked</div>
+
+  <!-- ================= INTRO ================= -->
+  <section id="intro" class="card">
+    <h1>Learner Archetype Assessment</h1>
+    <p class="lede">A short onboarding assessment that measures <strong>how you actually prefer to study</strong> — not which learner type sounds most like you.</p>
+    <div class="pills">
+      <span class="pill">24 questions</span>
+      <span class="pill">8 archetypes</span>
+      <span class="pill">4-point scale</span>
+      <span class="pill">4–6 minutes</span>
+    </div>
+
+    <div class="note">
+      <strong>How it works.</strong> For each statement, pick the option that best describes how you normally study:
+      <strong>1 — Not at all like me · 2 — A little like me · 3 — Mostly like me · 4 — Very much like me.</strong>
+      Answer based on what you actually do, not what you think a good student <em>should</em> do.
+      Questions appear in a randomised order, so the pattern isn't obvious.
+    </div>
+
+    <div class="row" style="margin:22px 0 8px;">
+      <h2 style="margin:0;">Before we begin</h2>
+    </div>
+    <p style="margin-top:0;">What are you primarily studying for right now? <span style="color:var(--muted);">(optional — this is context, not part of your score)</span></p>
+    <div class="ctx-options" id="ctxOptions">
+      <button class="opt ctx-opt" data-ctx="examination"><span class="k">1</span> An upcoming examination</button>
+      <button class="opt ctx-opt" data-ctx="long_term"><span class="k">2</span> Long-term understanding</button>
+      <button class="opt ctx-opt" data-ctx="practical"><span class="k">3</span> Applying knowledge to a practical task</button>
+      <button class="opt ctx-opt" data-ctx="curiosity"><span class="k">4</span> Exploring a subject out of curiosity</button>
+      <button class="opt ctx-opt" data-ctx="coursework"><span class="k">5</span> Keeping up with regular coursework</button>
+      <button class="opt ctx-opt" data-ctx="skip"><span class="k">–</span> Prefer not to say</button>
+    </div>
+
+    <div class="nav">
+      <div class="spacer"></div>
+      <button class="btn" id="startBtn">Start assessment</button>
+    </div>
+    <p class="disclaimer">
+      Designed for an initial prototype, not yet a validated psychological assessment. Scores are preferences, not probabilities of learning ability.
+    </p>
+  </section>
+
+  <!-- ================= QUIZ ================= -->
+  <section id="quiz" class="card hidden">
+    <div class="qmeta">
+      <span id="qCounter">Question 1 of 24</span>
+      <span id="qTime">~4–6 min</span>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="question" id="questionText"></div>
+    <div class="options" id="options"></div>
+    <div class="scale-hint">1 — Not at all like me &nbsp;·&nbsp; 2 — A little like me &nbsp;·&nbsp; 3 — Mostly like me &nbsp;·&nbsp; 4 — Very much like me</div>
+    <div class="nav">
+      <button class="btn secondary" id="backBtn">Back</button>
+      <div class="spacer"></div>
+      <button class="btn" id="nextBtn" disabled>Next</button>
+    </div>
+  </section>
+
+  <!-- ================= RESULT ================= -->
+  <section id="result" class="card hidden">
+    <div class="result-head">
+      <h2 class="result-title" id="resultTitle">Your learning profile</h2>
+      <span class="badge" id="resultBadge">—</span>
+    </div>
+    <p class="lede" id="resultSubtitle"></p>
+
+    <div class="scores" id="scoreBars"></div>
+
+    <div class="meaning">
+      <h3>What this means</h3>
+      <p id="meaningText"></p>
+    </div>
+
+    <div class="detail-grid" id="detailGrid"></div>
+
+    <div class="row" style="margin-top:26px;">
+      <div>
+        <h3 style="margin:0 0 4px;">Learner profile data (JSON)</h3>
+        <p style="margin:0; font-size:.86rem;">Illustrative structure — scores are not validated probabilities.</p>
+      </div>
+    </div>
+    <pre id="jsonOut"></pre>
+
+    <p class="disclaimer">
+      This is a prototype assessment. It should determine your <em>initial</em> learning experience, not permanently assign you to a content format. Scores are preference signals, not measures of ability.
+    </p>
+
+    <div class="nav">
+      <button class="btn secondary" id="retakeBtn">Retake assessment</button>
+      <div class="spacer"></div>
+      <button class="btn" id="copyBtn">Copy JSON</button>
+    </div>
+    <p class="footer-note">Unlocked · Learner Archetype Assessment · Prototype</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- DATA ---------------- */
+  var ARCHETYPES = {
+    builder: {
+      name: "Builder",
+      desc: "Application-oriented: learns by doing, experimenting and applying knowledge.",
+      seq: "Challenge → example → explanation",
+      tools: "Simulations, case studies, practice"
+    },
+    architect: {
+      name: "Architect",
+      desc: "Structure-oriented: wants the overall picture and connections between concepts.",
+      seq: "Roadmap → connections → deep dive",
+      tools: "Concept maps, structured notes"
+    },
+    sprinter: {
+      name: "Sprinter",
+      desc: "Momentum-oriented: prefers shorter sessions, quick feedback and visible progress.",
+      seq: "Summary → rapid quiz → recall",
+      tools: "Micro-lessons, streaks, quick tests"
+    },
+    explorer: {
+      name: "Explorer",
+      desc: "Inquiry-oriented: enjoys curiosity, investigation and discovering connections.",
+      seq: "Question → investigation → discussion",
+      tools: "Socratic tutor, comparisons"
+    },
+    strategist: {
+      name: "Strategist",
+      desc: "Goal-oriented: studies towards clear targets, priorities and deadlines.",
+      seq: "Goal → priorities → assessment",
+      tools: "Study planner, exam-focused quizzes"
+    },
+    deep_diver: {
+      name: "Deep Diver",
+      desc: "Mastery-oriented: seeks thorough understanding and underlying reasoning.",
+      seq: "Theory → reasoning → application",
+      tools: "Detailed explanations, derivations"
+    },
+    repeater: {
+      name: "Repeater",
+      desc: "Reinforcement-oriented: benefits from revisiting information and repeated recall.",
+      seq: "Explanation → recall → spaced review",
+      tools: "Flashcards, repetition schedule"
+    },
+    guided_learner: {
+      name: "Guided Learner",
+      desc: "Scaffolding-oriented: benefits from clear steps, hints and gradually increasing independence.",
+      seq: "Small concept → worked example → attempt",
+      tools: "Hints, guided steps, checkpoints"
+    }
+  };
+
+  var ARCH_ORDER = ["builder","architect","sprinter","explorer","strategist","deep_diver","repeater","guided_learner"];
+
+  var QUESTIONS = [
+    { id: 1,  arch: "builder",        reverse: false, text: "When starting a completely unfamiliar topic, I understand it faster when I first try a practical problem rather than read a long explanation." },
+    { id: 2,  arch: "builder",        reverse: false, text: "I remember concepts better when I use them in real-world examples, simulations or practical exercises." },
+    { id: 3,  arch: "builder",        reverse: true,  text: "I prefer to understand all the theory before attempting a problem." },
+
+    { id: 4,  arch: "architect",      reverse: false, text: "Before studying the details of a topic, I want to see an overview of what I am about to learn." },
+    { id: 5,  arch: "architect",      reverse: false, text: "Understanding how different concepts connect is just as important to me as understanding each concept individually." },
+    { id: 6,  arch: "architect",      reverse: true,  text: "I am comfortable studying individual topics without knowing how they fit into the larger subject." },
+
+    { id: 7,  arch: "sprinter",       reverse: false, text: "I prefer studying in short, focused sessions rather than spending a long time on one uninterrupted session." },
+    { id: 8,  arch: "sprinter",       reverse: false, text: "Frequent small quizzes and immediate feedback help me stay motivated while studying." },
+    { id: 9,  arch: "sprinter",       reverse: true,  text: "I prefer fewer checkpoints and one long, uninterrupted study session." },
+
+    { id: 10, arch: "explorer",       reverse: false, text: "When learning something new, I often find myself asking questions that go beyond what I am required to know." },
+    { id: 11, arch: "explorer",       reverse: false, text: "I enjoy comparing different explanations, exploring unusual cases and investigating why something might not work." },
+    { id: 12, arch: "explorer",       reverse: true,  text: "Once I understand a reliable explanation, I prefer not to branch into related questions or alternative explanations." },
+
+    { id: 13, arch: "strategist",     reverse: false, text: "When I have a test or deadline approaching, I prioritise topics according to their importance rather than studying everything equally." },
+    { id: 14, arch: "strategist",     reverse: false, text: "I like having a study plan with specific targets and a clear way to measure my progress." },
+    { id: 15, arch: "strategist",     reverse: true,  text: "I would rather follow my curiosity than prioritise topics based on an upcoming assessment or deadline." },
+
+    { id: 16, arch: "deep_diver",     reverse: false, text: "I want to understand why something works, not just memorise the answer or procedure." },
+    { id: 17, arch: "deep_diver",     reverse: false, text: "I am willing to spend extra time unpacking a difficult concept, even when it is not immediately required for an exam." },
+    { id: 18, arch: "deep_diver",     reverse: true,  text: "Once I can answer the required questions correctly, I usually move on without exploring the underlying reasoning." },
+
+    { id: 19, arch: "repeater",       reverse: false, text: "I learn more effectively when I revisit the same material over several days." },
+    { id: 20, arch: "repeater",       reverse: false, text: "Repeatedly testing myself on previously learned material helps me become confident and remember it." },
+    { id: 21, arch: "repeater",       reverse: true,  text: "I prefer studying a topic once in depth rather than returning to it through shorter review sessions." },
+
+    { id: 22, arch: "guided_learner", reverse: false, text: "When I encounter a difficult concept, I prefer a step-by-step explanation before attempting it independently." },
+    { id: 23, arch: "guided_learner", reverse: false, text: "I find complex topics easier when they are divided into smaller tasks with checkpoints along the way." },
+    { id: 24, arch: "guided_learner", reverse: true,  text: "I prefer receiving a complete challenge at once and figuring out the solution without hints or step-by-step guidance." }
+  ];
+
+  var Q_BY_ID = {};
+  QUESTIONS.forEach(function (q) { Q_BY_ID[q.id] = q; });
+
+  var OPTIONS = [
+    { v: 1, label: "Not at all like me" },
+    { v: 2, label: "A little like me" },
+    { v: 3, label: "Mostly like me" },
+    { v: 4, label: "Very much like me" }
+  ];
+
+  /* ---------------- STATE ---------------- */
+  var order = [];        // shuffled question ids
+  var answers = {};      // { qid: 1..4 }
+  var ctx = null;        // study context key
+  var idx = 0;           // current position in order
+
+  /* ---------------- HELPERS ---------------- */
+  function $(id) { return document.getElementById(id); }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ---------------- SCORING ---------------- */
+  function adjustedValue(q, raw) {
+    // Reverse-scored items flip the 4-point scale: 1→4, 2→3, 3→2, 4→1
+    return q.reverse ? (5 - raw) : raw;
+  }
+
+  function computeScores() {
+    var sums = {};
+    ARCH_ORDER.forEach(function (a) { sums[a] = 0; });
+
+    QUESTIONS.forEach(function (q) {
+      var raw = answers[q.id];
+      if (raw == null) raw = 2; // neutral fallback, should not happen
+      sums[q.arch] += adjustedValue(q, raw);
+    });
+
+    var scores = {};
+    ARCH_ORDER.forEach(function (a) {
+      // Archetype score = ((sum - 3) / 9) * 100, clamped 0..100
+      var s = ((sums[a] - 3) / 9) * 100;
+      if (s < 0) s = 0;
+      if (s > 100) s = 100;
+      scores[a] = Math.round(s);
+    });
+    return scores;
+  }
+
+  function interpret(scores) {
+    var sorted = ARCH_ORDER.map(function (a) { return { key: a, name: ARCHETYPES[a].name, score: scores[a] }; })
+      .sort(function (x, y) { return y.score - x.score; });
+
+    var first = sorted[0], second = sorted[1], third = sorted[2];
+    var max = first.score;
+    var min = sorted[sorted.length - 1].score;
+    var spread = max - min;
+
+    // 1. Scores generally low -> insufficient preference signal
+    if (max < 40) {
+      return { type: "insufficient", label: "Insufficient preference signal",
+        archetypes: [], primary: first, secondary: null };
+    }
+
+    // 2. Three or more similar high scores -> multi-approach learner
+    if ((max - third.score) <= 10 && third.score >= 50) {
+      return { type: "multi", label: "Multi-approach learner",
+        archetypes: [first, second, third], primary: first, secondary: second };
+    }
+
+    // 3. Top two scores within 10 points -> blended archetype
+    if ((max - second.score) <= 10) {
+      return { type: "blended", label: "Blended archetype",
+        archetypes: [first, second], primary: first, secondary: second };
+    }
+
+    // 4. All scores relatively similar and moderate -> flexible learner
+    if (spread <= 25 && max < 85) {
+      return { type: "flexible", label: "Flexible learner",
+        archetypes: [], primary: first, secondary: null };
+    }
+
+    // 5. One score clearly highest -> primary archetype
+    return { type: "primary", label: "Primary archetype",
+      archetypes: [first], primary: first, secondary: null };
+  }
+
+  /* ---------------- RENDER: INTRO / QUIZ ---------------- */
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  function setContext(key) {
+    ctx = key;
+    var opts = document.querySelectorAll(".ctx-opt");
+    for (var i = 0; i < opts.length; i++) {
+      opts[i].classList.toggle("selected", opts[i].getAttribute("data-ctx") === key);
+    }
+  }
+
+  function startQuiz() {
+    order = shuffle(QUESTIONS.map(function (q) { return q.id; }));
+    answers = {};
+    idx = 0;
+    hide($("intro"));
+    hide($("result"));
+    show($("quiz"));
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    var qid = order[idx];
+    var q = Q_BY_ID[qid];
+
+    $("qCounter").textContent = "Question " + (idx + 1) + " of " + order.length;
+    $("progressBar").style.width = ((idx) / order.length * 100) + "%";
+    $("questionText").textContent = q.text;
+
+    var box = $("options");
+    box.innerHTML = "";
+    OPTIONS.forEach(function (o) {
+      var b = document.createElement("button");
+      b.className = "opt" + (answers[qid] === o.v ? " selected" : "");
+      b.innerHTML = '<span class="k">' + o.v + "</span><span>" + o.label + "</span>";
+      b.addEventListener("click", function () {
+        answers[qid] = o.v;
+        var all = box.querySelectorAll(".opt");
+        for (var i = 0; i < all.length; i++) all[i].classList.remove("selected");
+        b.classList.add("selected");
+        $("nextBtn").disabled = false;
+      });
+      box.appendChild(b);
+    });
+
+    $("backBtn").disabled = idx === 0;
+    $("nextBtn").disabled = answers[qid] == null;
+    $("nextBtn").textContent = (idx === order.length - 1) ? "See my results" : "Next";
+  }
+
+  function next() {
+    if (answers[order[idx]] == null) return;
+    if (idx < order.length - 1) {
+      idx++;
+      renderQuestion();
+    } else {
+      finish();
+    }
+  }
+
+  function back() {
+    if (idx > 0) {
+      idx--;
+      renderQuestion();
+    }
+  }
+
+  /* ---------------- RENDER: RESULT ---------------- */
+  function buildProfileJSON(scores, prof) {
+    return {
+      profile_type: prof.type,
+      primary_archetype: prof.primary ? prof.primary.name : null,
+      secondary_archetype: prof.secondary ? prof.secondary.name : null,
+      archetypes: prof.archetypes.map(function (a) { return a.name; }),
+      scores: scores,
+      study_context: ctx && ctx !== "skip" ? ctx : null,
+      confidence: "initial",
+      calibration_status: "awaiting_behaviour"
+    };
+  }
+
+  function meaningSentence(prof) {
+    switch (prof.type) {
+      case "primary":
+        return "One archetype stands clearly above the rest. Your initial experience should lead with the " +
+          prof.primary.name + " learning sequence and tools, while keeping the other formats available as you go.";
+      case "blended":
+        return "Your top two scores are close, so you likely learn best through a blend of " +
+          prof.archetypes[0].name + " and " + prof.archetypes[1].name +
+          " — for example, " + ARCHETYPES[prof.archetypes[0].key].name + " structure delivered in " +
+          ARCHETYPES[prof.archetypes[1].key].name + "-style sessions.";
+      case "multi":
+        return "Several archetypes score similarly high. You are likely a multi-approach learner who adapts to the material — " +
+          "the initial experience should combine " +
+          prof.archetypes.map(function (a) { return a.name; }).join(", ") + ".";
+      case "flexible":
+        return "Your scores are relatively similar and moderate. You are a flexible learner with no single dominant preference — " +
+          "a varied mix of formats should work well.";
+      case "insufficient":
+      default:
+        return "Your scores are generally low and close together, so there isn't a clear preference signal yet. " +
+          "Calibrate by observing which formats you actually choose and how well you learn from them.";
+    }
+  }
+
+  function finish() {
+    var scores = computeScores();
+    var prof = interpret(scores);
+
+    hide($("quiz"));
+    show($("result"));
+
+    // Title + badge
+    var titleParts = prof.archetypes.length ? prof.archetypes.map(function (a) { return a.name; }).join(" + ") : "Flexible learner";
+    if (prof.type === "insufficient") titleParts = "No clear profile yet";
+    $("resultTitle").textContent = titleParts;
+
+    var badge = $("resultBadge");
+    badge.textContent = prof.label;
+    badge.className = "badge " + prof.type;
+
+    $("resultSubtitle").textContent = prof.archetypes.length
+      ? (prof.type === "blended" ? "Blended profile" : (prof.type === "multi" ? "Multi-approach profile" : "Primary profile"))
+      : (prof.type === "flexible" ? "Flexible profile" : "Insufficient preference signal");
+
+    // Score bars (sorted desc)
+    var sorted = ARCH_ORDER.slice().sort(function (a, b) { return scores[b] - scores[a]; });
+    var bars = $("scoreBars");
+    bars.innerHTML = "";
+    sorted.forEach(function (key, i) {
+      var row = document.createElement("div");
+      row.className = "score-row";
+      var nm = document.createElement("span");
+      nm.className = "name";
+      nm.textContent = ARCHETYPES[key].name;
+      var barWrap = document.createElement("div");
+      barWrap.className = "bar" + (i === 0 ? " top" : "");
+      var bar = document.createElement("div");
+      bar.style.width = "0%";
+      barWrap.appendChild(bar);
+      var val = document.createElement("span");
+      val.className = "val";
+      val.textContent = scores[key] + "/100";
+      row.appendChild(nm);
+      row.appendChild(barWrap);
+      row.appendChild(val);
+      bars.appendChild(row);
+      // animate
+      (function (b, w) { setTimeout(function () { b.style.width = w + "%"; }, 60 + i * 40); })(bar, scores[key]);
+    });
+
+    // Meaning
+    $("meaningText").textContent = meaningSentence(prof);
+
+    // Detail cards
+    var grid = $("detailGrid");
+    grid.innerHTML = "";
+    var showKeys = prof.archetypes.map(function (a) { return a.key; });
+    if (showKeys.length === 0 && prof.type === "flexible") {
+      // show all as a compact recommendation? keep it to top 2 for signal
+      showKeys = sorted.slice(0, 2).map(function (k) { return k; });
+    }
+    if (showKeys.length === 0) showKeys = [prof.primary.key];
+
+    showKeys.forEach(function (key, i) {
+      var a = ARCHETYPES[key];
+      var d = document.createElement("div");
+      d.className = "detail";
+      var tag = i === 0 ? "Primary archetype" : (i === 1 ? "Secondary archetype" : "Additional archetype");
+      d.innerHTML =
+        '<div class="tag">' + tag + " · " + scores[key] + "/100</div>" +
+        "<h3>" + a.name + "</h3>" +
+        "<div style='color:var(--muted); font-size:.92rem;'>" + a.desc + "</div>" +
+        '<div class="seq">' + a.seq + "</div>" +
+        '<div class="tools">Recommended tools: ' + a.tools + "</div>";
+      grid.appendChild(d);
+    });
+
+    // JSON
+    var profile = buildProfileJSON(scores, prof);
+    $("jsonOut").textContent = JSON.stringify(profile, null, 2);
+
+    // copy handler (reset)
+    $("copyBtn").onclick = function () {
+      var text = JSON.stringify(profile, null, 2);
+      var done = function () { $("copyBtn").textContent = "Copied ✓"; setTimeout(function () { $("copyBtn").textContent = "Copy JSON"; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    };
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function reset() {
+    hide($("result"));
+    hide($("quiz"));
+    show($("intro"));
+    answers = {};
+    ctx = null;
+    document.querySelectorAll(".ctx-opt").forEach(function (o) { o.classList.remove("selected"); });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ---------------- WIRE UP ---------------- */
+  document.addEventListener("DOMContentLoaded", function () {
+    // context options
+    var ctxOpts = document.querySelectorAll(".ctx-opt");
+    for (var i = 0; i < ctxOpts.length; i++) {
+      ctxOpts[i].addEventListener("click", function () {
+        setContext(this.getAttribute("data-ctx"));
+      });
+    }
+
+    $("startBtn").addEventListener("click", startQuiz);
+    $("nextBtn").addEventListener("click", next);
+    $("backBtn").addEventListener("click", back);
+    $("retakeBtn").addEventListener("click", reset);
+
+    // keyboard: 1-4 to answer, Enter/ArrowRight to advance
+    document.addEventListener("keydown", function (e) {
+      if ($("quiz").classList.contains("hidden")) return;
+      if (e.key >= "1" && e.key <= "4") {
+        var qid = order[idx];
+        var v = parseInt(e.key, 10);
+        answers[qid] = v;
+        // re-render selection
+        renderQuestion();
+      } else if (e.key === "Enter" || e.key === "ArrowRight") {
+        if (!$("nextBtn").disabled) next();
+      } else if (e.key === "ArrowLeft") {
+        back();
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
