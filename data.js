@@ -6,7 +6,7 @@ var SAMPLE_TOPICS = [
 {
   id: "photosynthesis",
   title: "Photosynthesis",
-  image: "/src/assets/images/topic_photosynthesis_1795445537606.jpg",
+  art: "photosynthesis",
   summary: "How plants convert light energy, water and carbon dioxide into glucose and oxygen.",
   classification: "process, structure, quant",
   concepts: [
@@ -123,7 +123,7 @@ var SAMPLE_TOPICS = [
 {
   id: "newton2",
   title: "Newton's Second Law",
-  image: "/src/assets/images/topic_newton2_1795445538106.jpg",
+  art: "newton2",
   summary: "Force, mass and acceleration are linked by F = m x a. Net force determines acceleration.",
   classification: "quant, procedure",
   concepts: [
@@ -228,7 +228,7 @@ var SAMPLE_TOPICS = [
 {
   id: "supply-demand",
   title: "Supply and Demand",
-  image: "/src/assets/images/topic_supply_demand_1795445538490.jpg",
+  art: "supply-demand",
   summary: "Prices adjust until quantity supplied equals quantity demanded: the market equilibrium.",
   classification: "quant, concept, relation",
   concepts: [

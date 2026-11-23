@@ -187,9 +187,74 @@ function showScreen(name) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function topicSceneSvg(artKey) {
+  var svgOpen = '<svg viewBox="0 0 320 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">';
+  if (artKey === "photosynthesis") {
+    return svgOpen +
+      '<rect width="320" height="240" fill="#B8D0CC"/>' +
+      '<ellipse cx="236" cy="58" rx="68" ry="52" fill="#F2B44B" opacity=".55"/>' +
+      '<circle cx="236" cy="58" r="34" fill="#FCEB9C"/>' +
+      '<path d="M0 154 Q80 120 170 144 T320 132 L320 240 L0 240 Z" fill="#9EB977" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M0 176 Q110 148 210 178 T320 165 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<ellipse cx="185" cy="212" rx="110" ry="26" fill="#7DA8A4" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<ellipse cx="152" cy="210" rx="18" ry="6" fill="#7EA85B" stroke="#2C261F" stroke-width="2"/>' +
+      '<ellipse cx="212" cy="215" rx="14" ry="5" fill="#9EB977" stroke="#2C261F" stroke-width="2"/>' +
+      '<rect x="58" y="96" width="18" height="88" rx="4" fill="#8C6A4A" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M67 28 L108 122 L26 122 Z" fill="#4A6F4E" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M67 54 L116 146 L18 146 Z" fill="#5E8558" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M236 96 L210 145 M236 96 L248 152 M236 96 L276 138" stroke="#FCEB9C" stroke-width="3" stroke-linecap="round" opacity=".85"/>' +
+      '</svg>';
+  }
+  if (artKey === "newton2") {
+    return svgOpen +
+      '<rect width="320" height="240" fill="#B8D0CC"/>' +
+      '<path d="M32 138 L94 42 L152 138 Z" fill="#8A999A" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M94 42 L116 78 L98 72 L86 84 L74 72 Z" fill="#FCF9EE" stroke="#2C261F" stroke-width="2"/>' +
+      '<path d="M168 140 L236 52 L298 140 Z" fill="#7C8D90" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M236 52 L256 80 L238 75 L224 84 L216 74 Z" fill="#FCF9EE" stroke="#2C261F" stroke-width="2"/>' +
+      '<path d="M0 132 Q84 108 168 136 T320 124 L320 240 L0 240 Z" fill="#B2C97D" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M0 162 Q100 132 196 172 T320 154 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M18 240 Q120 184 260 202 L320 212 L320 240 Z" fill="#A68258" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<rect x="138" y="156" width="52" height="28" rx="6" fill="#F2B44B" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<circle cx="150" cy="188" r="9" fill="#57534A" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<circle cx="178" cy="188" r="9" fill="#57534A" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M94 170 L128 170 M120 163 L129 170 L120 177" stroke="#2C261F" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>';
+  }
+  if (artKey === "supply-demand") {
+    return svgOpen +
+      '<rect width="320" height="240" fill="#E39054"/>' +
+      '<path d="M28 54 Q66 36 106 54 Q130 58 120 70 L20 70 Q12 58 28 54 Z" fill="#F2C894" stroke="#2C261F" stroke-width="2"/>' +
+      '<path d="M196 42 Q232 24 268 42 Q286 48 276 58 L190 58 Q182 48 196 42 Z" fill="#F2C894" stroke="#2C261F" stroke-width="2"/>' +
+      '<path d="M0 144 L76 74 L144 136 L220 68 L320 146 L320 240 L0 240 Z" fill="#8C6A4A" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M0 166 Q90 132 174 166 T320 156 L320 240 L0 240 Z" fill="#B6B6D4" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<path d="M0 192 Q115 168 220 198 T320 184 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
+      '<line x1="160" y1="108" x2="160" y2="184" stroke="#2C261F" stroke-width="3.5"/>' +
+      '<line x1="108" y1="120" x2="212" y2="120" stroke="#2C261F" stroke-width="3.5" stroke-linecap="round"/>' +
+      '<path d="M94 148 Q108 164 122 148 Z" fill="#FCEB9C" stroke="#2C261F" stroke-width="2"/>' +
+      '<path d="M198 148 Q212 164 226 148 Z" fill="#DCE9E6" stroke="#2C261F" stroke-width="2"/>' +
+      '<line x1="108" y1="120" x2="96" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
+      '<line x1="108" y1="120" x2="120" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
+      '<line x1="212" y1="120" x2="200" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
+      '<line x1="212" y1="120" x2="224" y2="148" stroke="#2C261F" stroke-width="1.8"/>' +
+      '</svg>';
+  }
+  return svgOpen +
+    '<rect width="320" height="240" fill="#B8D0CC"/>' +
+    '<circle cx="160" cy="70" r="46" fill="#FCEB9C" stroke="#2C261F" stroke-width="2"/>' +
+    '<path d="M0 156 Q80 120 160 148 T320 136 L320 240 L0 240 Z" fill="#9EB977" stroke="#2C261F" stroke-width="2.5"/>' +
+    '<path d="M0 182 Q110 154 220 186 T320 172 L320 240 L0 240 Z" fill="#7EA85B" stroke="#2C261F" stroke-width="2.5"/>' +
+    '<path d="M68 78 L98 158 L38 158 Z" fill="#4A6F4E" stroke="#2C261F" stroke-width="2.5"/>' +
+    '<path d="M252 68 L286 156 L218 156 Z" fill="#5E8558" stroke="#2C261F" stroke-width="2.5"/>' +
+    '<path d="M126 240 Q152 184 194 166" stroke="#A68258" stroke-width="18" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
 function topicThumbHtml(t) {
-  var src = t.image || "/public/assets/aistudio/image_9f1ca12d.png";
-  return '<div class="topic-thumb"><img src="' + esc(src) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
+  if (t.image) {
+    return '<div class="topic-thumb"><img src="' + esc(t.image) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
+  }
+  return '<div class="topic-thumb">' + topicSceneSvg(t.art || t.id) + "</div>";
 }
 
 function renderHome() {
