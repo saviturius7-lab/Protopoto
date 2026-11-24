@@ -448,11 +448,19 @@ def build_topic_hierarchy_concepts_and_quizzes(
             )
 
     # 3. Backfill top TextRank/TF-IDF keywords with their best evidence sentence
+    generic_skip = {
+        "system", "process", "example", "study", "group", "work", "place", "part", "unit",
+        "value", "values", "data", "table", "figure", "page", "chapter", "section", "type",
+        "types", "form", "forms", "method", "result", "results", "molecules", "molecule",
+    }
     if len(concepts) < 8:
-        for kw in keywords:
+        sorted_kws = sorted(keywords, key=lambda k: (1 if " " in k.get("term", "") else 0, k.get("score", 0)), reverse=True)
+        for kw in sorted_kws:
             if len(concepts) >= 10:
                 break
             term = kw["term"]
+            if term.lower() in generic_skip:
+                continue
             for ch in chunks:
                 if term in ch["text"].lower():
                     sents = split_sentences(ch["text"])
@@ -550,18 +558,25 @@ def build_topic_hierarchy_concepts_and_quizzes(
     quiz: List[Dict[str, Any]] = []
     quiz_seen: set = set()
     kw_pool = [k["term"].title() for k in keywords if len(k.get("term", "")) >= 3]
+    doc_vocab: List[str] = []
+    vocab_seen: set = set()
+    for ch in chunks:
+        for tok in tokenize(ch["text"]):
+            if len(tok) >= 5 and not tok.isdigit() and tok not in vocab_seen:
+                vocab_seen.add(tok)
+                doc_vocab.append(tok.title())
 
     def build_distractors(correct_label: str) -> List[str]:
         pool: List[str] = []
         seen_d = {correct_label.lower()}
-        for candidate in [c["name"] for c in concepts] + kw_pool:
+        for candidate in [c["name"] for c in concepts] + kw_pool + doc_vocab:
             low = candidate.lower()
             if low not in seen_d and low not in correct_label.lower() and correct_label.lower() not in low:
                 seen_d.add(low)
                 pool.append(candidate)
             if len(pool) >= 3:
                 break
-        fallbacks = ["Unrelated control variable", "Constant baseline factor", "External boundary noise"]
+        fallbacks = ["Equilibrium rate", "Reaction pathway", "Structural threshold"]
         for fb in fallbacks:
             if len(pool) >= 3:
                 break
@@ -889,6 +904,23 @@ def cmd_get_topic(payload: Dict[str, Any]) -> Dict[str, Any]:
         row = conn.execute("SELECT * FROM topics WHERE id = ?", (topic_id,)).fetchone()
         if not row:
             return {"found": False}
+        chunk_rows = conn.execute(
+            "SELECT id, doc_id, source_name, source_type, page_num, section, location, text FROM chunks WHERE topic_id = ? ORDER BY page_num ASC, id ASC LIMIT 16",
+            (topic_id,),
+        ).fetchall()
+        chunks = [
+            {
+                "id": cr["id"],
+                "docId": cr["doc_id"],
+                "sourceName": cr["source_name"],
+                "sourceType": cr["source_type"],
+                "pageNum": cr["page_num"],
+                "section": cr["section"],
+                "location": cr["location"],
+                "text": cr["text"],
+            }
+            for cr in chunk_rows
+        ]
         return {
             "found": True,
             "id": row["id"],
@@ -898,14 +930,97 @@ def cmd_get_topic(payload: Dict[str, Any]) -> Dict[str, Any]:
             "concepts": json.loads(row["concepts_json"]),
             "relationships": json.loads(row["relationships_json"]),
             "quiz": json.loads(row["quiz_json"]),
+            "chunks": chunks,
         }
+    finally:
+        conn.close()
+
+
+def cmd_delete_doc(payload: Dict[str, Any]) -> Dict[str, Any]:
+    topic_id = str(payload.get("topicId") or "").strip()
+    doc_id = str(payload.get("docId") or "").strip()
+    if not doc_id:
+        return {"deleted": False, "error": "docId is required"}
+    conn = get_db()
+    try:
+        if topic_id:
+            conn.execute("DELETE FROM chunks WHERE doc_id = ? AND topic_id = ?", (doc_id, topic_id))
+            conn.execute("DELETE FROM documents WHERE id = ? AND topic_id = ?", (doc_id, topic_id))
+        else:
+            row = conn.execute("SELECT topic_id FROM documents WHERE id = ?", (doc_id,)).fetchone()
+            if row:
+                topic_id = row["topic_id"]
+            conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
+            conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+
+        if topic_id:
+            rem_rows = conn.execute(
+                "SELECT id, doc_id, source_name, source_type, page_num, section, location, text, tokens_json FROM chunks WHERE topic_id = ?",
+                (topic_id,),
+            ).fetchall()
+            if not rem_rows:
+                conn.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+                conn.commit()
+                return {"deleted": True, "topicId": topic_id, "remainingChunks": 0, "keywords": [], "hierarchy": [], "quiz": []}
+
+            all_chunks = [
+                {
+                    "id": r["id"],
+                    "doc_id": r["doc_id"],
+                    "source_name": r["source_name"],
+                    "source_type": r["source_type"],
+                    "page_num": r["page_num"],
+                    "section": r["section"],
+                    "location": r["location"],
+                    "text": r["text"],
+                    "tokens": json.loads(r["tokens_json"]),
+                }
+                for r in rem_rows
+            ]
+            trow = conn.execute("SELECT title FROM topics WHERE id = ?", (topic_id,)).fetchone()
+            topic_title = trow["title"] if trow else "Topic"
+            keywords = extract_yake_and_textrank_keywords(all_chunks, top_k=12)
+            sec_seen: Dict[str, List[str]] = defaultdict(list)
+            for c in all_chunks:
+                sec_seen[c.get("section") or "Overview"].append(c["text"])
+            sections = [
+                {"section": s, "chars": sum(len(x) for x in txts), "sample": " ".join(txts)[:180]}
+                for s, txts in sec_seen.items()
+            ]
+            mapped = build_topic_hierarchy_concepts_and_quizzes(topic_title, all_chunks, sections, [], keywords)
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO topics (id, title, hierarchy_json, keywords_json, concepts_json, relationships_json, quiz_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    topic_id,
+                    topic_title,
+                    json.dumps(mapped["hierarchy"]),
+                    json.dumps(keywords),
+                    json.dumps(mapped["concepts"]),
+                    json.dumps(mapped["relationships"]),
+                    json.dumps(mapped["quiz"]),
+                ),
+            )
+            conn.commit()
+            return {
+                "deleted": True,
+                "topicId": topic_id,
+                "remainingChunks": len(all_chunks),
+                "keywords": keywords,
+                "hierarchy": mapped["hierarchy"],
+                "quiz": mapped["quiz"],
+            }
+        conn.commit()
+        return {"deleted": True, "remainingChunks": 0}
     finally:
         conn.close()
 
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "Missing command (ingest|search|topic)"}))
+        print(json.dumps({"error": "Missing command (ingest|search|topic|delete_doc)"}))
         sys.exit(1)
     cmd = sys.argv[1]
     raw = sys.stdin.read() or "{}"
@@ -916,6 +1031,8 @@ def main() -> None:
         res = cmd_search(payload)
     elif cmd == "topic":
         res = cmd_get_topic(payload)
+    elif cmd == "delete_doc":
+        res = cmd_delete_doc(payload)
     else:
         res = {"error": f"Unknown command: {cmd}"}
     print(json.dumps(res))

@@ -70,20 +70,20 @@ function buildDiagram() {
   var W = 640, H = 300, cx = 320, cy = 150;
   var inp = dg.inputs || [], outp = dg.outputs || [];
   var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit" style="background:var(--surface-2);border:2px solid var(--border);border-radius:12px">';
-  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2DDAC2"/></marker>' +
-    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2DDAC2"/></marker></defs>';
-  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#134542" stroke="#2DDAC2" stroke-width="3"/>';
-  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#E2FAF6" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
-  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#87C5BC" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
+  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6DA85B"/></marker>' +
+    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#E8BE5E"/></marker></defs>';
+  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#233C2B" stroke="#6DA85B" stroke-width="2.5"/>';
+  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#E6EDE2" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
+  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#ADC2AD" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
   inp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, inp.length));
-    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#2DDAC2" stroke-width="2.5" marker-end="url(#ar)"/>';
-    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#E2FAF6" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#6DA85B" stroke-width="2.5" marker-end="url(#ar)"/>';
+    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#E6EDE2" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   outp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, outp.length));
-    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#2DDAC2" stroke-width="2.5" marker-end="url(#ar2)"/>';
-    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#E2FAF6" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#E8BE5E" stroke-width="2.5" marker-end="url(#ar2)"/>';
+    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#E6EDE2" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   svg += "</svg>";
   box.innerHTML = svg;
@@ -100,13 +100,13 @@ function initMermaidOoo() {
     startOnLoad: false,
     theme: "base",
     themeVariables: {
-      background: "#103433",
-      primaryColor: "#144A47",
-      primaryTextColor: "#E2FAF6",
-      primaryBorderColor: "#2DDAC2",
-      lineColor: "#2DDAC2",
-      secondaryColor: "#0E3D31",
-      tertiaryColor: "#143B34",
+      background: "#1C3123",
+      primaryColor: "#233C2B",
+      primaryTextColor: "#E6EDE2",
+      primaryBorderColor: "#6DA85B",
+      lineColor: "#E8BE5E",
+      secondaryColor: "#1D3A27",
+      tertiaryColor: "#2C3321",
       fontFamily: "Plus Jakarta Sans, sans-serif"
     }
   });
@@ -182,16 +182,16 @@ function buildGraph() {
   setTimeout(function () {
     try {
       if (!window.Chart) { canvas.outerHTML = '<p class="small muted">Chart library unavailable offline.</p>'; return; }
-      var palette = ["#2DDAC2", "#2EE09A", "#F0B354"];
+      var palette = ["#6DA85B", "#E8BE5E", "#5B9F97"];
       new Chart(canvas, {
         type: "line",
         data: { labels: g.labels, datasets: (g.series || []).map(function (s, idx) {
           var col = palette[idx % palette.length];
           return { label: s.name, data: s.data, borderColor: col, backgroundColor: "transparent", borderDash: s.dashed ? [6, 4] : [], borderWidth: 3, tension: 0.35, pointRadius: 4, pointBackgroundColor: col };
         }) },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } },
-          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#E2FAF6", font: { weight: "700" } }, ticks: { color: "#87C5BC" }, grid: { color: "rgba(135,197,188,.14)" } },
-            y: { title: { display: true, text: g.ylabel || "", color: "#E2FAF6", font: { weight: "700" } }, ticks: { color: "#87C5BC" }, grid: { color: "rgba(135,197,188,.14)" } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } },
+          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#E6EDE2", font: { weight: "700" } }, ticks: { color: "#ADC2AD" }, grid: { color: "rgba(173,194,173,.14)" } },
+            y: { title: { display: true, text: g.ylabel || "", color: "#E6EDE2", font: { weight: "700" } }, ticks: { color: "#ADC2AD" }, grid: { color: "rgba(173,194,173,.14)" } } } }
       });
     } catch (e) {}
   }, 30);
@@ -216,8 +216,8 @@ RENDERERS.conceptmap = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#144A47", border: "#2DDAC2", highlight: { background: "#19C2AE", border: "#E2FAF6" } }, font: { color: "#E2FAF6", face: "Plus Jakarta Sans", bold: true } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#2DDAC2" }, font: { color: "#87C5BC", size: 11, background: "#103433" }, width: 2 }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#233C2B", border: "#6DA85B", highlight: { background: "#6DA85B", border: "#E6EDE2" } }, font: { color: "#E6EDE2", face: "Plus Jakarta Sans", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#E8BE5E" }, font: { color: "#ADC2AD", size: 11, background: "#1C3123" }, width: 2 }; }));
         w._net = new vis.Network(container, { nodes: nodes, edges: edges }, { layout: { improvedLayout: true }, physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true, tooltipDelay: 120 } });
         return;
       } catch (e) {}
@@ -232,34 +232,92 @@ RENDERERS.reconstruct = function () {
   var w = el("div");
   var viz = el("div", "viz");
   viz.innerHTML = "<h4>Reconstruct - rebuild the map from memory</h4>" +
-    "<p class='small muted' style='margin-top:0'>Concept mapping is strongest when you actively construct the connections. Hide the labels, rebuild the links, then reveal to check.</p>";
-  var container = el("div"); container.style.cssText = "width:100%;height:340px;background:var(--surface-2);border:2px solid var(--border);border-radius:12px";
+    "<p class='small muted' style='margin-top:0'>Concept mapping is strongest when you actively construct the connections. Match the hidden relationships below or toggle the map labels to check your recall.</p>";
+  var container = el("div"); container.style.cssText = "width:100%;height:300px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:12px";
   viz.appendChild(container);
-  var check = el("button", "btn sm", "Hide labels to rebuild"); check.style.marginTop = "12px";
+  var check = el("button", "btn secondary sm", "Hide labels to rebuild"); check.style.marginTop = "12px";
   viz.appendChild(check);
   var hidden = el("div", "small"); hidden.style.color = "var(--warn)"; hidden.style.marginTop = "8px";
   viz.appendChild(hidden);
-  var showLabels = true;
+  var showLabels = false;
+  var concepts = T.concepts || [], rels = T.relationships || [];
+  var byId = {};
+  concepts.forEach(function (c) { byId[c.id] = c.name; });
+
   function build(labels) {
-    var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: labels ? c.name : "?", shape: "box", borderWidth: 2, color: { background: labels ? "#144A47" : "#3D1926", border: labels ? "#2DDAC2" : "#FF748B" }, font: { color: "#E2FAF6", bold: true } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "", arrows: "to", color: { color: "#2DDAC2" }, font: { color: "#87C5BC", size: 11, background: "#103433" }, width: 2 }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c, idx) {
+          return { id: c.id, label: labels ? c.name : ("Node " + (idx + 1)), shape: "box", borderWidth: 2, color: { background: labels ? "#233C2B" : "#382422", border: labels ? "#6DA85B" : "#DF7F85" }, font: { color: "#E6EDE2", bold: true } };
+        }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "?", arrows: "to", color: { color: "#E8BE5E" }, font: { color: "#ADC2AD", size: 11, background: "#1C3123" }, width: 2 }; }));
         if (container._net) container._net.destroy();
         container._net = new vis.Network(container, { nodes: nodes, edges: edges }, { physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true } });
         return;
       } catch (e) {}
     }
-    container.innerHTML = '<p class="small muted" style="padding:12px">Map library unavailable offline. Rebuild these from memory:<br>' +
-      rels.map(function (r) { return esc(r.from) + " -> " + esc(r.label) + " -> " + esc(r.to); }).join("<br>") + "</p>";
+    container.innerHTML = '<p class="small muted" style="padding:12px">' +
+      (labels
+        ? ("Connections:<br>" + rels.map(function (r) { return esc(byId[r.from] || r.from) + " -> " + esc(r.label) + " -> " + esc(byId[r.to] || r.to); }).join("<br>"))
+        : "Labels hidden — complete the link reconstruction challenge below.") +
+      "</p>";
   }
-  build(true);
+  build(false);
+  check.textContent = "Reveal map labels";
   check.addEventListener("click", function () {
     showLabels = !showLabels; build(showLabels);
-    check.textContent = showLabels ? "Hide labels to rebuild" : "Reveal map to check";
-    hidden.textContent = showLabels ? "" : "Try to reconstruct the connections from memory, then reveal to check.";
+    check.textContent = showLabels ? "Hide labels to rebuild" : "Reveal map labels";
+    hidden.textContent = showLabels ? "Map revealed — verify your reconstructed links below." : "Labels hidden — match the target concept for each link below.";
   });
+
+  if (concepts.length >= 2 && rels.length >= 1) {
+    var quizBox = el("div", "ed-item");
+    quizBox.style.marginTop = "14px";
+    var targets = rels.slice(0, 4);
+    quizBox.innerHTML = "<strong>Active link reconstruction (" + targets.length + " relationships)</strong>" +
+      '<div class="small muted" style="margin:4px 0 10px">Select the missing target concept for each relationship from memory, then check.</div>';
+    var selects = [];
+    targets.forEach(function (r, idx) {
+      var row = el("div");
+      row.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;margin-top:8px";
+      var prompt = el("div", "small");
+      prompt.innerHTML = "<strong>" + (idx + 1) + ". " + esc(byId[r.from] || r.from) + "</strong> <span class='muted'>— " + esc(r.label) + " →</span>";
+      var sel = el("select");
+      sel.innerHTML = '<option value="">Choose target concept...</option>' +
+        concepts.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + "</option>"; }).join("");
+      row.appendChild(prompt);
+      row.appendChild(sel);
+      quizBox.appendChild(row);
+      selects.push({ sel: sel, expected: r.to });
+    });
+    var submitRec = el("button", "btn sm", "Check reconstruction");
+    submitRec.style.marginTop = "12px";
+    var recFb = el("div"); recFb.style.marginTop = "10px";
+    quizBox.appendChild(submitRec);
+    quizBox.appendChild(recFb);
+    submitRec.addEventListener("click", function () {
+      var correct = 0;
+      selects.forEach(function (item) {
+        var ok = item.sel.value === item.expected;
+        if (ok) correct++;
+        item.sel.style.borderColor = ok ? "var(--good)" : "var(--bad)";
+      });
+      var pct = Math.round((correct / selects.length) * 100);
+      var passed = pct >= 60;
+      w._demonstrated = true;
+      showLabels = true;
+      build(true);
+      check.textContent = "Hide labels to rebuild";
+      recFb.innerHTML = '<div class="fb ' + (passed ? "good" : "bad") + '"><strong>' + correct + " / " + selects.length + " links reconstructed (" + pct + "%).</strong> " +
+        (passed ? "Strong mental model of how the concepts connect." : "Inspect the revealed map above and try matching again.") + "</div>";
+      bumpMastery(passed ? 14 : 5);
+      recordTransferResult(passed);
+    });
+    viz.appendChild(quizBox);
+  } else {
+    w._demonstrated = true;
+  }
+
   w.appendChild(viz);
   return w;
 };
@@ -286,7 +344,11 @@ RENDERERS.quiz = function () {
   var host = el("div"); viz.appendChild(host); w.appendChild(viz);
   setTimeout(function () {
     var qs = shuffle(T.quiz || []);
-    host.appendChild(makeQuiz(qs, { complete: function (pct, passed) { bumpMastery(passed ? 18 : 6); } }));
+    if (!qs.length) w._demonstrated = true;
+    host.appendChild(makeQuiz(qs, {
+      record: function () { w._demonstrated = true; },
+      complete: function (pct, passed) { w._demonstrated = true; bumpMastery(passed ? 18 : 6); }
+    }));
   }, 20);
   return w;
 };
@@ -302,6 +364,7 @@ RENDERERS.retrieve = function () {
     card.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;min-height:96px";
     card.innerHTML = "<strong>" + esc(c.name) + '</strong><div class="small muted" style="margin-top:8px">Click to reveal definition</div><div class="small" style="margin-top:8px;display:none">' + esc(c.def) + "</div>";
     card.addEventListener("click", function () {
+      w._demonstrated = true;
       var rev = card.querySelectorAll(".small")[1], hint = card.querySelector(".small.muted");
       if (rev.style.display === "none") { rev.style.display = "block"; hint.style.display = "none"; }
       else { rev.style.display = "none"; hint.style.display = "block"; }
@@ -313,7 +376,10 @@ RENDERERS.retrieve = function () {
     var check = el("button", "btn sm", "Quick self-check quiz"); check.style.marginTop = "14px";
     check.addEventListener("click", function () {
       var holder = el("div"); holder.style.marginTop = "12px"; viz.appendChild(holder);
-      holder.appendChild(makeQuiz(shuffle((T.quiz || []).slice(0, 3)), { complete: function (pct, passed) { bumpMastery(passed ? 12 : 4); } }));
+      holder.appendChild(makeQuiz(shuffle((T.quiz || []).slice(0, 3)), {
+        record: function () { w._demonstrated = true; },
+        complete: function (pct, passed) { w._demonstrated = true; bumpMastery(passed ? 12 : 4); }
+      }));
       check.remove();
     });
     viz.appendChild(check);
@@ -326,18 +392,22 @@ RENDERERS.challenge = function () {
   var w = el("div");
   var viz = el("div", "viz");
   var ch = T.challenge || { prompt: "Apply the concept to a new problem.", keywords: [], minCorrect: 1, why: "" };
-  viz.innerHTML = "<h4>Mission - apply the concept</h4>" +
+  viz.innerHTML = "<h4>Challenge - apply the concept</h4>" +
     "<p class='small muted' style='margin-top:0'>" + esc(ch.prompt) + "</p>";
   var ta = el("textarea"); ta.placeholder = "Your reasoning ..."; viz.appendChild(ta);
   var btn = el("button", "btn sm", "Check my reasoning"); btn.style.marginTop = "12px";
   viz.appendChild(btn);
   var fb = el("div"); fb.style.marginTop = "12px"; viz.appendChild(fb);
   btn.addEventListener("click", function () {
-    var v = ta.value.toLowerCase();
-    var found = (ch.keywords || []).filter(function (k) { return k.re.test(v); }).length;
-    var good = found >= (ch.minCorrect || 1);
+    var v = ta.value.trim();
+    if (!v) { fb.innerHTML = '<div class="fb bad">Write your reasoning before checking.</div>'; return; }
+    var keys = ch.keywords || [];
+    var found = keys.filter(function (k) { return matchKeyword(k, v); }).length;
+    var good = keys.length ? (found >= (ch.minCorrect || 1)) : (v.split(/\s+/).length >= 5);
+    w._demonstrated = true;
     fb.innerHTML = '<div class="fb ' + (good ? "good" : "bad") + '"><strong>' + (good ? "Good application. " : "Keep going. ") + "</strong>" +
-      "You covered " + found + "/" + (ch.keywords || []).length + " key ideas. " + esc(ch.why || "") + "</div>";
+      (keys.length ? ("You covered " + found + "/" + keys.length + " key ideas. ") : "") + esc(ch.why || "") + "</div>";
+    recordTransferResult(good);
     bumpMastery(good ? 15 : 5); btn.remove();
   });
   w.appendChild(viz);
@@ -354,6 +424,7 @@ RENDERERS.predict = function () {
   var fb = el("div"); fb.style.marginTop = "12px"; viz.appendChild(fb);
   btn.addEventListener("click", function () {
     if (!ta.value.trim()) { fb.innerHTML = '<div class="fb bad">Write a quick prediction first.</div>'; return; }
+    w._demonstrated = true;
     fb.innerHTML = '<div class="fb good">Prediction locked. ' + esc(pr.revealHtml || "") + "</div>";
     btn.remove();
   });
@@ -369,7 +440,7 @@ RENDERERS.worked = function () {
   (T.worked || []).forEach(function (s, i) {
     var d = el("div");
     d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 15px;display:flex;gap:12px;align-items:flex-start";
-    d.innerHTML = '<div style="flex:0 0 28px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--gold);border:2px solid var(--border);font-weight:700;font-size:.82rem;color:var(--ink)">' + (i + 1) + "</div>" +
+    d.innerHTML = '<div style="flex:0 0 28px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--gold);border:2px solid var(--border);font-weight:700;font-size:.82rem;color:#031B19">' + (i + 1) + "</div>" +
       "<div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div></div>";
     list.appendChild(d);
   });
@@ -392,12 +463,14 @@ RENDERERS.guide = function () {
     var fb = el("div", "small"); fb.style.marginTop = "8px";
     box.appendChild(btn); box.appendChild(fb);
     btn.addEventListener("click", function () {
+      w._demonstrated = true;
       var norm = function (s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); };
       if (norm(inp.value) === norm(it.a)) { fb.innerHTML = "<span style='color:var(--good);font-weight:700'>Correct.</span>"; bumpMastery(10); }
       else { fb.innerHTML = "<span style='color:var(--warn);font-weight:700'>Hint: " + esc(it.hint || "") + "</span>"; }
     });
     host.appendChild(box);
   });
+  if (!(T.guide || []).length) w._demonstrated = true;
   w.appendChild(viz);
   return w;
 };
@@ -424,10 +497,16 @@ RENDERERS.hint = function () {
     fb.innerHTML = '<div class="fb bad">' + esc(hints[level - 1]) + "</div>";
   });
   checkBtn.addEventListener("click", function () {
-    var v = ta.value.toLowerCase();
-    var found = (h.keywords || []).filter(function (k) { return k.re.test(v); }).length;
-    if (found >= 1) { fb.innerHTML = '<div class="fb good">' + esc(h.answerHtml || "Correct.") + "</div>"; bumpMastery(14); }
-    else { fb.innerHTML = '<div class="fb bad">Not quite - connect the ideas. Try a hint if you need one.</div>'; }
+    var v = ta.value.trim();
+    if (!v) { fb.innerHTML = '<div class="fb bad">Write a quick attempt first.</div>'; return; }
+    var keys = h.keywords || [];
+    var found = keys.filter(function (k) { return matchKeyword(k, v); }).length;
+    w._demonstrated = true;
+    if (found >= 1 || (!keys.length && v.split(/\s+/).length >= 4)) {
+      fb.innerHTML = '<div class="fb good">' + esc(h.answerHtml || "Correct.") + "</div>"; bumpMastery(14);
+    } else {
+      fb.innerHTML = '<div class="fb bad">Not quite - connect the ideas. Try a hint if you need one.</div>';
+    }
   });
   viz.appendChild(box); w.appendChild(viz);
   return w;
@@ -442,13 +521,15 @@ RENDERERS.explain = function () {
   var btn = el("button", "btn sm", "Check my explanation"); btn.style.marginTop = "12px"; viz.appendChild(btn);
   var fb = el("div"); fb.style.marginTop = "12px"; viz.appendChild(fb);
   btn.addEventListener("click", function () {
-    var v = ta.value.toLowerCase();
+    var v = ta.value.trim();
+    if (!v) { fb.innerHTML = '<div class="fb bad">Write your explanation before checking.</div>'; return; }
     var keys = ex.keywords || [];
-    var found = keys.filter(function (k) { return k.re.test(v); });
-    var missing = keys.filter(function (k) { return !k.re.test(v); });
-    var good = found.length >= (ex.minCorrect || 1);
-    fb.innerHTML = '<div class="fb ' + (good ? "good" : "bad") + '"><strong>' + (good ? "Solid explanation. " : "Almost. ") + "</strong>You mentioned " +
-      found.length + "/" + keys.length + " key ideas" + (missing.length ? " - consider adding: " + missing.map(function (m) { return m.msg; }).join(", ") + "." : ".") + "</div>";
+    var found = keys.filter(function (k) { return matchKeyword(k, v); });
+    var missing = keys.filter(function (k) { return !matchKeyword(k, v); });
+    var good = keys.length ? (found.length >= (ex.minCorrect || 1)) : (v.split(/\s+/).length >= 6);
+    w._demonstrated = true;
+    fb.innerHTML = '<div class="fb ' + (good ? "good" : "bad") + '"><strong>' + (good ? "Solid explanation. " : "Almost. ") + "</strong>" +
+      (keys.length ? ("You mentioned " + found.length + "/" + keys.length + " key ideas" + (missing.length ? " - consider adding: " + missing.map(function (m) { return m.msg; }).join(", ") + "." : ".")) : "Explanation recorded.") + "</div>";
     bumpMastery(good ? 16 : 6); btn.remove();
   });
   w.appendChild(viz);
@@ -461,6 +542,9 @@ RENDERERS.hook = function () {
   var hk = T.hook || { prompt: "What do you notice? What do you wonder?" };
   viz.innerHTML = "<h4>Curiosity hook</h4><p style='font-size:1.05rem;color:var(--ink);font-weight:600'>" + esc(hk.prompt) + "</p>";
   var ta = el("textarea"); ta.placeholder = "My initial idea ..."; viz.appendChild(ta);
+  ta.addEventListener("input", function () {
+    if (ta.value.trim().length > 0) w._demonstrated = true;
+  });
   w.appendChild(viz);
   return w;
 };
@@ -478,11 +562,15 @@ RENDERERS.evidence = function () {
     b.addEventListener("click", function () {
       var btns = host.querySelectorAll(".opt");
       for (var k = 0; k < btns.length; k++) btns[k].style.pointerEvents = "none";
-      if (i === ev.answer) { b.classList.add("correct"); fb.innerHTML = '<div class="fb good">Correct - ' + esc(ev.why) + "</div>"; bumpMastery(12); }
+      w._demonstrated = true;
+      var ok = i === ev.answer;
+      recordTransferResult(ok);
+      if (ok) { b.classList.add("correct"); fb.innerHTML = '<div class="fb good">Correct - ' + esc(ev.why) + "</div>"; bumpMastery(12); }
       else { b.classList.add("wrong"); if (btns[ev.answer]) btns[ev.answer].classList.add("correct"); fb.innerHTML = '<div class="fb bad">' + esc(ev.why) + "</div>"; }
     });
     host.appendChild(b);
   });
+  if (!(ev.options || []).length) w._demonstrated = true;
   w.appendChild(viz);
   return w;
 };
@@ -493,14 +581,25 @@ RENDERERS.goal = function () {
   viz.innerHTML = "<h4>Set your target</h4><p class='small muted' style='margin-top:0'>What are you studying this for?</p>";
   var sel = el("select");
   sel.innerHTML = "<option>An upcoming examination</option><option>Long-term understanding</option><option>Applying knowledge to a practical task</option><option>Exploring out of curiosity</option><option>Keeping up with coursework</option>";
+  var ctxMap = {
+    examination: "An upcoming examination",
+    long_term: "Long-term understanding",
+    practical: "Applying knowledge to a practical task",
+    curiosity: "Exploring out of curiosity",
+    coursework: "Keeping up with coursework"
+  };
+  var ctxVal = state.assessmentProfile && state.assessmentProfile.study_context;
+  if (ctxVal && ctxMap[ctxVal]) sel.value = ctxMap[ctxVal];
+  else if (state.plan && state.plan.target) sel.value = state.plan.target;
   viz.appendChild(sel);
-  var days = el("input"); days.type = "number"; days.min = "1"; days.value = "7"; days.placeholder = "Days until target"; days.style.marginTop = "10px";
+  var days = el("input"); days.type = "number"; days.min = "1"; days.value = (state.plan && state.plan.days) ? String(state.plan.days) : "7"; days.placeholder = "Days until target"; days.style.marginTop = "10px";
   viz.appendChild(days);
   var btn = el("button", "btn sm", "Build my plan"); btn.style.marginTop = "12px"; viz.appendChild(btn);
   var fb = el("div"); fb.style.marginTop = "12px"; viz.appendChild(fb);
   btn.addEventListener("click", function () {
     var n = Math.max(1, parseInt(days.value, 10) || 7);
     state.plan = { target: sel.value, days: n }; store();
+    w._demonstrated = true;
     fb.innerHTML = '<div class="fb good">Target set: <strong>' + esc(sel.value) + "</strong> in <strong>" + n + " days</strong>. We will diagnose gaps, prioritise, and allocate practice accordingly.</div>";
     btn.remove();
   });
@@ -513,7 +612,14 @@ RENDERERS.diagnose = function () {
   var viz = el("div", "viz");
   viz.innerHTML = "<h4>Diagnose - check existing knowledge</h4>";
   var host = el("div"); viz.appendChild(host); w.appendChild(viz);
-  setTimeout(function () { host.appendChild(makeQuiz(shuffle((T.quiz || []).slice(0, 3)), { complete: function (pct, passed) { bumpMastery(passed ? 10 : 4); } })); }, 20);
+  setTimeout(function () {
+    var qs = shuffle((T.quiz || []).slice(0, 3));
+    if (!qs.length) w._demonstrated = true;
+    host.appendChild(makeQuiz(qs, {
+      record: function () { w._demonstrated = true; },
+      complete: function (pct, passed) { w._demonstrated = true; bumpMastery(passed ? 10 : 4); }
+    }));
+  }, 20);
   return w;
 };
 
@@ -532,8 +638,8 @@ RENDERERS.mastery = function () {
     try {
       if (window.Chart) new Chart(canvas, {
         type: "bar",
-        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#19C2AE" : "#158468"; }), borderColor: "#27706A", borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E2FAF6", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } }
+        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#6DA85B" : "#4D8043"; }), borderColor: "#3A5D44", borderWidth: 1.5 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E6EDE2", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } }
       });
     } catch (e) {}
     (T.concepts || []).forEach(function (c) {
@@ -565,7 +671,7 @@ RENDERERS.plan = function () {
     var m = p.mastery[c.id] || 0;
     var priority = m < 40 ? "High" : (m < 70 ? "Medium" : "Low");
     var pColor = priority === "High" ? "var(--bad)" : (priority === "Medium" ? "var(--warn)" : "var(--good)");
-    var row = el("div", "mission"); row.style.padding = "12px 14px";
+    var row = el("div", "plan-row"); row.style.padding = "12px 14px";
     row.innerHTML = '<div class="num" style="flex:0 0 58px;width:58px;font-size:.76rem">Day ' + day + "</div>" +
       '<div class="body"><div class="ttl">' + esc(c.name) + '</div>' +
       '<div class="st">Priority: <strong style="color:' + pColor + '">' + priority + "</strong> · activity: explanation, retrieval, application</div></div>";
@@ -582,6 +688,16 @@ RENDERERS.plan = function () {
 RENDERERS.game = function () { return buildGame(); };
 
 /* ---------------- GAME ---------------- */
+function marketQuantities(v, g) {
+  var price = v.price != null ? v.price : 50;
+  var supShift = (v.supply != null ? v.supply : 50) - 50;
+  var demShift = (v.demand != null ? v.demand : 50) - 50;
+  var qd = Math.max(0, Math.round(100 - price + demShift));
+  var qs = Math.max(0, Math.round(price + supShift));
+  var eqPrice = Math.max(0, Math.min(100, Math.round((g.target || 50) + (demShift - supShift) / 2)));
+  return { qd: qd, qs: qs, eqPrice: eqPrice, gap: Math.abs(qs - qd) };
+}
+
 function gameScore(kind, v, g) {
   if (kind === "physics") {
     var net = Math.max(0, (v.force || 0) - (v.friction || 0));
@@ -589,11 +705,24 @@ function gameScore(kind, v, g) {
     return Math.round(Math.max(0, 100 - Math.abs(a - (g.target || 3)) * 20));
   }
   if (kind === "market") {
-    var dev = Math.abs((v.price || 0) - (g.target || 50)) / 50 + Math.abs((v.supply || 0) - (v.demand || 0)) / 100;
-    return Math.round(Math.max(0, 100 - dev * 60));
+    var mq = marketQuantities(v, g);
+    return Math.round(Math.max(0, 100 - mq.gap * 1.4));
   }
   var arr = (g.sliders || []).map(function (s) { return v[s.id] || 0; });
   return Math.round(Math.min.apply(null, arr.concat([100])));
+}
+
+function gameDefaultValue(kind, sliderId) {
+  if (kind === "physics") {
+    if (sliderId === "force") return 25;
+    if (sliderId === "mass") return 5;
+    if (sliderId === "friction") return 5;
+  }
+  if (kind === "market") {
+    if (sliderId === "price") return 30;
+    return 50;
+  }
+  return 50;
 }
 
 function buildGame() {
@@ -602,14 +731,16 @@ function buildGame() {
   var g = T.game || { title: "Interactive simulation", goal: "Adjust the variables.", kind: "limiting", target: 0, unit: "score", sliders: [] };
   viz.innerHTML = "<h4>Experiment - " + esc(g.title) + "</h4><p class='small muted' style='margin-top:0'>" + esc(g.goal) + "</p>";
   var canvas = el("canvas");
-  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#0E3A38,#061B1B);border-radius:12px;border:2px solid var(--border)";
+  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#1F3B27,#122217);border-radius:12px;border:2px solid var(--border)";
   viz.appendChild(canvas);
   var sliders = el("div");
   sliders.style.cssText = "display:grid;gap:10px;margin-top:12px";
   (g.sliders || []).forEach(function (s) {
+    var minVal = s.id === "mass" ? 1 : 0;
+    var initVal = gameDefaultValue(g.kind, s.id);
     var row = el("div");
     row.style.cssText = "display:grid;grid-template-columns:120px 1fr 56px;gap:10px;align-items:center;font-size:.88rem;font-weight:600";
-    row.innerHTML = "<span>" + esc(s.label) + '</span><input type="range" min="0" max="100" value="50" data-id="' + esc(s.id) + '"><span class="val" style="font-family:var(--font-mono);text-align:right" data-val="' + esc(s.id) + '">50</span>';
+    row.innerHTML = "<span>" + esc(s.label) + '</span><input type="range" min="' + minVal + '" max="100" value="' + initVal + '" data-id="' + esc(s.id) + '"><span class="val" style="font-family:var(--font-mono);text-align:right" data-val="' + esc(s.id) + '">' + initVal + "</span>";
     sliders.appendChild(row);
   });
   viz.appendChild(sliders);
@@ -638,11 +769,14 @@ function buildGame() {
     if (g.kind === "physics") {
       var net = Math.max(0, (v.force || 0) - (v.friction || 0));
       var a = net / Math.max(1, v.mass || 1);
-      return "Net force " + Math.round(net) + " N on " + (v.mass || 1) + " kg gives a = " + a.toFixed(1) + " m/s2 (target " + (g.target || 3) + ").";
+      return "Net force " + Math.round(net) + " N on " + Math.max(1, v.mass || 1) + " kg gives a = " + a.toFixed(1) + " m/s2 (target " + (g.target || 3) + ").";
     }
     if (g.kind === "market") {
-      var d = Math.abs((v.price || 0) - (g.target || 50));
-      return d < 8 ? "Near equilibrium - supply and demand are balanced." : ((v.price || 0) > (g.target || 50) ? "Price above equilibrium, so there is a surplus." : "Price below equilibrium, so there is a shortage.");
+      var mq = marketQuantities(v, g);
+      if (mq.gap <= 6) return "Near equilibrium (P = " + Math.round(v.price || 0) + ", Qd = " + mq.qd + ", Qs = " + mq.qs + ") — supply and demand are balanced.";
+      return mq.qs > mq.qd
+        ? ("Price " + Math.round(v.price || 0) + " exceeds equilibrium (" + mq.eqPrice + "): Qs (" + mq.qs + ") > Qd (" + mq.qd + "), creating a surplus.")
+        : ("Price " + Math.round(v.price || 0) + " is below equilibrium (" + mq.eqPrice + "): Qd (" + mq.qd + ") > Qs (" + mq.qs + "), creating a shortage.");
     }
     var arr = (g.sliders || []).map(function (s) { return v[s.id] || 0; });
     var min = Math.min.apply(null, arr.concat([100]));
@@ -655,34 +789,35 @@ function buildGame() {
     if (!ctx) return;
     var W = canvas.width = Math.max(320, canvas.clientWidth * 2), H = canvas.height = 300 * 2;
     ctx.setTransform(2, 0, 0, 2, 0, 0);
-    var w = W / 2, h = H / 2;
-    ctx.clearRect(0, 0, w, h);
+    var cw = W / 2, h = H / 2;
+    ctx.clearRect(0, 0, cw, h);
     var sc = score(v);
     var slidersArr = g.sliders || [];
-    var barW = Math.min(72, (w - 60) / Math.max(1, slidersArr.length) - 12);
-    var barColors = ["#19C2AE", "#158468", "#3CE8D2"];
+    var barW = Math.min(72, (cw - 60) / Math.max(1, slidersArr.length) - 12);
+    var barColors = ["#6DA85B", "#5B9F97", "#E8BE5E"];
     slidersArr.forEach(function (s, i) {
       var x = 24 + i * (barW + 18), y = 60, bh = 150;
       var val = v[s.id] || 0;
-      ctx.fillStyle = "#0A2322"; ctx.fillRect(x, y, barW, bh);
+      ctx.fillStyle = "#172A1D"; ctx.fillRect(x, y, barW, bh);
       ctx.fillStyle = barColors[i % barColors.length]; ctx.fillRect(x, y + bh * (1 - val / 100), barW, bh * (val / 100));
-      ctx.strokeStyle = "#27706A"; ctx.lineWidth = 2; ctx.strokeRect(x, y, barW, bh);
-      if (s.id === "price" && g.target != null) {
-        var ty = y + bh * (1 - g.target / 100);
-        ctx.fillStyle = "#FF748B"; ctx.fillRect(x - 4, ty, barW + 8, 4);
+      ctx.strokeStyle = "#3A5D44"; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, barW, bh);
+      if (s.id === "price" && g.kind === "market") {
+        var mq = marketQuantities(v, g);
+        var ty = y + bh * (1 - mq.eqPrice / 100);
+        ctx.fillStyle = "#D8876D"; ctx.fillRect(x - 4, ty, barW + 8, 4);
       }
-      ctx.fillStyle = "#E2FAF6"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#E6EDE2"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
       ctx.fillText(s.label, x + barW / 2, y - 8);
       ctx.fillText(Math.round(val), x + barW / 2, y + bh + 16);
     });
-    ctx.fillStyle = "#3CE8D2"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(sc + "%", w / 2, h - 38);
-    ctx.fillStyle = "#87C5BC"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
-    ctx.fillText(g.unit || "score", w / 2, h - 18);
-    ctx.fillStyle = "#0A2322"; ctx.fillRect(24, 24, w - 48, 12);
-    ctx.fillStyle = "#2EE09A"; ctx.fillRect(24, 24, (w - 48) * Math.min(1, growth / 100), 12);
-    ctx.strokeStyle = "#27706A"; ctx.lineWidth = 2; ctx.strokeRect(24, 24, w - 48, 12);
-    ctx.fillStyle = "#E2FAF6"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
+    ctx.fillStyle = "#E8BE5E"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(sc + "%", cw / 2, h - 38);
+    ctx.fillStyle = "#ADC2AD"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
+    ctx.fillText(g.unit || "score", cw / 2, h - 18);
+    ctx.fillStyle = "#172A1D"; ctx.fillRect(24, 24, cw - 48, 12);
+    ctx.fillStyle = "#72C26D"; ctx.fillRect(24, 24, (cw - 48) * Math.min(1, growth / 100), 12);
+    ctx.strokeStyle = "#3A5D44"; ctx.lineWidth = 1.5; ctx.strokeRect(24, 24, cw - 48, 12);
+    ctx.fillStyle = "#E6EDE2"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
     ctx.fillText("Session Progress", 24, 18);
   }
 
@@ -696,6 +831,7 @@ function buildGame() {
   });
 
   runBtn.addEventListener("click", function () {
+    w._demonstrated = true;
     var v = vals();
     var sc = score(v);
     growth += sc;
@@ -707,16 +843,19 @@ function buildGame() {
       runBtn.disabled = true;
       var avg = Math.round(growth / MAXR);
       fb.innerHTML += '<div class="fb ' + (avg >= 60 ? "good" : "bad") + '" style="margin-top:10px"><strong>Result:</strong> average ' + avg + "%. " +
-        (avg >= 70 ? "You balanced the system well." : "Try to raise the limiting input each round.") + "</div>";
+        (avg >= 70 ? "You balanced the system well." : "Adjust the key variables toward the target each round.") + "</div>";
+      recordTransferResult(avg >= 60);
       bumpMastery(avg >= 60 ? 20 : 8);
     }
   });
   resetBtn.addEventListener("click", function () {
     growth = 0; round = 1; runBtn.disabled = false; roundLbl.textContent = "Round 1 / 5";
     sliders.querySelectorAll("input[type=range]").forEach(function (inp) {
-      inp.value = 50;
-      var span = sliders.querySelector('[data-val="' + inp.getAttribute("data-id") + '"]');
-      if (span) span.textContent = "50";
+      var sid = inp.getAttribute("data-id");
+      var defVal = gameDefaultValue(g.kind, sid);
+      inp.value = defVal;
+      var span = sliders.querySelector('[data-val="' + sid + '"]');
+      if (span) span.textContent = String(defVal);
     });
     fb.innerHTML = ""; draw();
   });

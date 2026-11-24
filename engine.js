@@ -21,6 +21,17 @@ var T = null; // active topic
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
+function compactTopicForStorage(t) {
+  if (!t) return;
+  if (t.source_text && t.source_text.length > 12000) t.source_text = t.source_text.slice(0, 12000);
+  (t.ragDocs || []).forEach(function (d) { if (d.thumb) delete d.thumb; });
+  if (Array.isArray(t.ragChunks) && t.ragChunks.length > 24) {
+    t.ragChunks = t.ragChunks.slice(0, 24).map(function (c) {
+      return { id: c.id, docId: c.docId, sourceName: c.sourceName, sourceType: c.sourceType, location: c.location, text: String(c.text || "").slice(0, 360) };
+    });
+  }
+}
+
 function store() {
   try {
     if (typeof localStorage !== "undefined") {
@@ -32,18 +43,14 @@ function store() {
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(payload));
       } catch (quotaErr) {
-        // Fallback: strip large base64 thumbnails / oversize source_text if storage quota is tight
         var compact = clone(payload);
-        (compact.customTopics || []).forEach(function (t) {
-          if (t.source_text && t.source_text.length > 16000) t.source_text = t.source_text.slice(0, 16000);
-          (t.ragDocs || []).forEach(function (d) { if (d.thumb) delete d.thumb; });
-        });
-        Object.keys(compact.edits || {}).forEach(function (id) {
-          var ed = compact.edits[id];
-          if (ed.source_text && ed.source_text.length > 16000) ed.source_text = ed.source_text.slice(0, 16000);
-          (ed.ragDocs || []).forEach(function (d) { if (d.thumb) delete d.thumb; });
-        });
-        localStorage.setItem(STORE_KEY, JSON.stringify(compact));
+        (compact.customTopics || []).forEach(compactTopicForStorage);
+        Object.keys(compact.edits || {}).forEach(function (id) { compactTopicForStorage(compact.edits[id]); });
+        try {
+          localStorage.setItem(STORE_KEY, JSON.stringify(compact));
+        } catch (hardErr) {
+          toast("Browser storage is full; large document chunks remain saved in SQLite.");
+        }
       }
     }
   } catch (e) {}
@@ -73,23 +80,12 @@ function getTopic(id) {
   var merged = clone(base);
   var ed = state.edits[id];
   if (ed) {
-    if (ed.title != null) merged.title = ed.title;
-    if (ed.summary != null) merged.summary = ed.summary;
-    if (ed.classification != null) merged.classification = ed.classification;
-    if (ed.concepts != null) merged.concepts = ed.concepts;
-    if (ed.quiz != null) merged.quiz = ed.quiz;
-    if (ed.relationships != null) merged.relationships = ed.relationships;
-    if (ed.source_text != null) merged.source_text = ed.source_text;
-    if (ed.graph != null) merged.graph = ed.graph;
-    if (ed.process != null) merged.process = ed.process;
-    if (ed.diagram != null) merged.diagram = ed.diagram;
-    if (ed.story != null) merged.story = ed.story;
-    if (ed.explain != null) merged.explain = ed.explain;
-    if (ed.ragDocs != null) merged.ragDocs = ed.ragDocs;
-    if (ed.ragChunks != null) merged.ragChunks = ed.ragChunks;
-    if (ed.extractedStats != null) merged.extractedStats = ed.extractedStats;
-    if (ed.hierarchy != null) merged.hierarchy = ed.hierarchy;
-    if (ed.nlpKeywords != null) merged.nlpKeywords = ed.nlpKeywords;
+    ["title", "summary", "classification", "image", "concepts", "quiz", "relationships", "source_text",
+     "graph", "process", "diagram", "story", "explain", "worked", "guide", "hint", "hook",
+     "evidence", "challenge", "game", "misconceptions", "ragDocs", "ragChunks", "extractedStats",
+     "hierarchy", "nlpKeywords"].forEach(function (field) {
+      if (ed[field] != null) merged[field] = ed[field];
+    });
   }
   return merged;
 }
@@ -105,9 +101,20 @@ function topicProgress(id) {
     var tp = getTopic(id);
     var mastery = {};
     if (tp) tp.concepts.forEach(function (c) { mastery[c.id] = 0; });
-    state.progress[id] = { mastery: mastery, completed: [], quizLog: { correct: 0, total: 0 }, index: 0 };
+    state.progress[id] = { mastery: mastery, completed: [], quizLog: { correct: 0, total: 0 }, transferLog: { correct: 0, total: 0 }, index: 0 };
   }
-  return state.progress[id];
+  var pr = state.progress[id];
+  if (!pr.quizLog) pr.quizLog = { correct: 0, total: 0 };
+  if (!pr.transferLog) pr.transferLog = { correct: 0, total: 0 };
+  if (!pr.completed) pr.completed = [];
+  if (!pr.mastery) pr.mastery = {};
+  return pr;
+}
+function recordTransferResult(passed) {
+  var p = topicProgress();
+  p.transferLog.total++;
+  if (passed) p.transferLog.correct++;
+  store();
 }
 
 /* helpers */
@@ -121,13 +128,24 @@ function el(tag, cls, html) {
 function toast(msg) {
   var t = $("toast"); if (!t) return;
   t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove("show"); }, 2200);
 }
 function addXP(n) { state.xp += n; var x = $("xpVal"); if (x) x.textContent = state.xp; store(); if (n > 0) toast("+" + n + " XP"); }
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
     return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
   });
+}
+function matchKeyword(k, text) {
+  if (!k || !text) return false;
+  if (k.re && typeof k.re.test === "function") return k.re.test(text);
+  var pat = k.pattern || k.msg || "";
+  if (!pat) return false;
+  try {
+    return new RegExp(pat, "i").test(text);
+  } catch (e) {
+    return text.toLowerCase().indexOf(String(pat).toLowerCase()) > -1;
+  }
 }
 function shuffle(a) {
   a = a.slice();
@@ -192,24 +210,80 @@ function srsDueCount(topic) {
   return n;
 }
 
-/* screens */
+/* screens + kinetic transitions + asset scenery backdrop */
 var SCREEN_NAMES = ["home", "library", "quest", "cycle", "dashboard", "upload", "editor", "review"];
+var SCREEN_SCENERY = {
+  home: "/public/assets/aistudio/image_9f1ca12d.png",
+  library: "/public/assets/aistudio/image_76fad887.png",
+  quest: "/public/assets/aistudio/image_052f24b8.png",
+  cycle: "/public/assets/aistudio/image_9f1ca12d.png",
+  upload: "/public/assets/aistudio/image_76fad887.png",
+  editor: "/public/assets/aistudio/image_052f24b8.png",
+  review: "/public/assets/aistudio/image_9f1ca12d.png",
+  dashboard: "/public/assets/aistudio/image_052f24b8.png"
+};
+var ASSET_THUMB_FALLBACKS = [
+  "/public/assets/aistudio/image_76fad887.png",
+  "/public/assets/aistudio/image_052f24b8.png",
+  "/public/assets/aistudio/image_9f1ca12d.png"
+];
+
+function updateScreenScenery(name) {
+  var bg = $("sceneryBg");
+  if (!bg) return;
+  var src = SCREEN_SCENERY[name] || SCREEN_SCENERY.home;
+  bg.style.backgroundImage = 'url("' + src + '")';
+}
+
+function triggerTopbarSweep() {
+  var sweep = $("navProgressSweep");
+  if (!sweep) return;
+  sweep.classList.remove("sweeping");
+  void sweep.offsetWidth;
+  sweep.classList.add("sweeping");
+}
+function applyStagger(root, selector) {
+  if (!root) return;
+  var items = root.querySelectorAll(selector);
+  for (var i = 0; i < items.length && i < 16; i++) {
+    items[i].classList.remove("anim-stagger");
+    items[i].style.setProperty("--stagger-i", String(i));
+    void items[i].offsetWidth;
+    items[i].classList.add("anim-stagger");
+  }
+}
 function showScreen(name) {
+  var activeNode = null;
   SCREEN_NAMES.forEach(function (s) {
     var node = $("screen-" + s);
-    if (node) node.classList.toggle("hidden", s !== name);
+    if (!node) return;
+    var show = s === name;
+    node.classList.toggle("hidden", !show);
+    if (show) activeNode = node;
   });
   var navBtns = document.querySelectorAll("#nav button");
   for (var i = 0; i < navBtns.length; i++) {
     var ds = navBtns[i].getAttribute("data-screen");
     navBtns[i].classList.toggle("active", ds === (name === "cycle" ? "quest" : name));
   }
+  updateScreenScenery(name);
   if (name === "quest") renderQuest();
   if (name === "dashboard") renderDashboard();
   if (name === "library") renderLibrary();
   if (name === "upload") renderUpload();
   if (name === "editor") renderEditor();
   if (name === "review") renderReview();
+
+  triggerTopbarSweep();
+  if (activeNode) {
+    activeNode.classList.remove("screen-enter");
+    void activeNode.offsetWidth;
+    activeNode.classList.add("screen-enter");
+    if (name === "home") applyStagger(activeNode, ".topic-card, .arch-card");
+    else if (name === "library") applyStagger(activeNode, ".topic-card");
+    else if (name === "quest") applyStagger(activeNode, ".mrow");
+    else if (name === "dashboard") applyStagger(activeNode, ".kpi, .viz");
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -277,10 +351,14 @@ function topicSceneSvg(artKey) {
 }
 
 function topicThumbHtml(t) {
-  if (t.image) {
-    return '<div class="topic-thumb"><img src="' + esc(t.image) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
+  var imgSrc = t.image;
+  if (!imgSrc) {
+    var sum = 0;
+    var idStr = String(t.id || "topic");
+    for (var i = 0; i < idStr.length; i++) sum += idStr.charCodeAt(i);
+    imgSrc = ASSET_THUMB_FALLBACKS[sum % ASSET_THUMB_FALLBACKS.length];
   }
-  return '<div class="topic-thumb">' + topicSceneSvg(t.art || t.id) + "</div>";
+  return '<div class="topic-thumb"><img src="' + esc(imgSrc) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
 }
 
 function renderHome() {
@@ -335,14 +413,19 @@ function renderHome() {
   });
 }
 
-function startJourney(key) {
+function startJourney(key, opts) {
   state.archetype = key;
   var a = ARCHETYPES[key];
   state.journey = a.journeys.map(function (_, i) { return i; });
   var p = topicProgress();
-  p.completed = []; p.index = 0; p.quizLog = { correct: 0, total: 0 };
-  T.concepts.forEach(function (c) { p.mastery[c.id] = 0; });
-  state.plan = null;
+  if (opts && opts.resetProgress) {
+    p.completed = []; p.index = 0; p.quizLog = { correct: 0, total: 0 }; p.transferLog = { correct: 0, total: 0 };
+    T.concepts.forEach(function (c) { p.mastery[c.id] = 0; });
+    state.plan = null;
+  } else {
+    T.concepts.forEach(function (c) { if (p.mastery[c.id] == null) p.mastery[c.id] = 0; });
+    p.index = Math.min(Math.max(0, p.index || 0), a.journeys.length - 1);
+  }
   store();
   showScreen("quest");
 }
@@ -376,6 +459,7 @@ function computeAdaptiveRecommendation() {
   var due = srsDueCount(T);
   var vals = (T.concepts || []).map(function (c) { return p.mastery[c.id] || 0; });
   var avgMastery = vals.length ? Math.round(vals.reduce(function (x, y) { return x + y; }, 0) / vals.length) : 0;
+  var ctx = state.assessmentProfile && state.assessmentProfile.study_context;
 
   var rules = [];
   if (imm !== null && imm < 60) {
@@ -399,11 +483,23 @@ function computeAdaptiveRecommendation() {
       onAction: function () { showScreen("review"); }
     });
   }
+  if (ctx === "examination" && p.quizLog.total === 0) {
+    rules.push({
+      badge: "Exam focus",
+      cls: "now",
+      text: "Your assessment goal is an upcoming exam. Start with retrieval practice or build a gap-prioritised plan once ready.",
+      actionLabel: "Jump to retrieval check →",
+      onAction: function () {
+        var idx = a.journeys.findIndex(function (j) { return j.view === "quiz" || j.view === "diagnose" || j.view === "retrieve"; });
+        p.index = idx >= 0 ? idx : 0; store(); showScreen("cycle");
+      }
+    });
+  }
   if (state.assessmentProfile && state.assessmentProfile.secondary_name && state.assessmentProfile.profile_type === "blended") {
     rules.push({
       badge: "Blended profile",
       cls: "done",
-      text: "Your assessment showed a blend with " + state.assessmentProfile.secondary_name + ". Try switching to " + state.assessmentProfile.secondary_name + " after completing this cycle to compare formats.",
+      text: "Your assessment showed a blend with " + state.assessmentProfile.secondary_name + ". Switch anytime without losing mastery to compare formats.",
       actionLabel: "Switch to " + state.assessmentProfile.secondary_name,
       onAction: function () { startJourney(state.assessmentProfile.secondary_key); }
     });
@@ -459,62 +555,45 @@ function renderQuest() {
   }
 
   var ml = $("masteryList"); ml.innerHTML = "";
-  T.concepts.forEach(function (c) {
-    var m = p.mastery[c.id] || 0;
-    var row = el("div", "mrow");
-    row.innerHTML = '<span>' + esc(c.name) + '</span><div class="mbar"><div style="width:' + m + '%"></div></div><span class="mv">' + m + "%</span>";
-    ml.appendChild(row);
-  });
-
-  var nextIdx = nextIncompleteIndex(p);
-  var mlist = $("missionList"); mlist.innerHTML = "";
-  a.journeys.forEach(function (j, i) {
-    var done = p.completed.indexOf(i) > -1;
-    var current = !done && i === nextIdx;
-    var locked = !done && !current && i > nextIdx;
-    var m = el("div", "mission" + (done ? " done" : "") + (current ? " current" : ""));
-    m.style.cursor = "pointer";
-    var tag = done ? '<span class="status-text done">Complete</span>' : (current ? '<span class="status-text now">Current</span>' : (locked ? '<span class="status-text next">Up next</span>' : '<span class="status-text next">Up next</span>'));
-    m.innerHTML = '<div class="num">' + (done ? "✓" : (i + 1)) + "</div>" +
-      '<div class="body"><div class="ttl">' + esc(j.stage) + '</div><div class="st">' + esc(j.instr) + "</div></div>" + tag;
-    m.addEventListener("click", function () {
-      p.index = i; store(); showScreen("cycle");
+  if (!T.concepts || !T.concepts.length) {
+    ml.innerHTML = '<p class="small muted">No concepts extracted yet for this chapter. Upload a textbook in Textbooks or add concepts in the Editor.</p>';
+  } else {
+    T.concepts.forEach(function (c) {
+      var m = p.mastery[c.id] || 0;
+      var row = el("div", "mrow");
+      row.innerHTML = '<span>' + esc(c.name) + '</span><div class="mbar"><div style="width:' + m + '%"></div></div><span class="mv">' + m + "%</span>";
+      ml.appendChild(row);
     });
-    mlist.appendChild(m);
-  });
+  }
 
   $("continueBtn").textContent = doneCount >= total ? "Journey complete - view progress" : "Continue learning";
 }
 
 function nextIncompleteIndex(p) {
-  for (var i = 0; i < state.journey.length; i++) if (p.completed.indexOf(i) === -1) return i;
+  var len = state.journey.length || (state.archetype && ARCHETYPES[state.archetype] ? ARCHETYPES[state.archetype].journeys.length : 6);
+  for (var i = 0; i < len; i++) if (p.completed.indexOf(i) === -1) return i;
   return 0;
 }
 
 /* cycle */
 var STAGE_ORDER = ["Discover", "Orient", "Understand", "Interact", "Retrieve", "Revisit"];
 function stageIcon(s) { return ({ Discover: "?", Orient: "O", Understand: "U", Interact: "I", Retrieve: "R", Revisit: "V" })[s] || "*"; }
-function stageToCycle(s) {
-  s = s.toLowerCase();
-  if (/mission|hook|target|diagnose|goal|predict|curiosity/.test(s)) return 0;
-  if (/overview|map|foundation|introduce|orient/.test(s)) return 1;
-  if (/demonstrate|explain|derive|learn|connect/.test(s)) return 2;
-  if (/experiment|investigate|guide|hint|challenge|zoom|plan|prioritise/.test(s)) return 3;
-  if (/recall|correct|check|revisit|release|review|apply|mix|transfer|explain back/.test(s)) return 4;
-  return 5;
+function stageToCycle(_s, index) {
+  return Math.min(STAGE_ORDER.length - 1, Math.max(0, Number(index) || 0));
 }
 
-function renderCycle() {
+function renderCycle(dir) {
   if (!state.archetype || !T) { showScreen("home"); return; }
   var a = ARCHETYPES[state.archetype];
   var p = topicProgress();
+  p.index = Math.min(Math.max(0, p.index || 0), a.journeys.length - 1);
   var j = a.journeys[p.index];
-  $("cycleMissionTag").textContent = "Mission " + (p.index + 1) + " of " + a.journeys.length;
+  $("cycleMissionTag").textContent = "Stage " + (p.index + 1) + " of " + a.journeys.length;
 
   var strip = $("stageStrip"); strip.innerHTML = "";
-  var stageIdx = stageToCycle(j.stage);
+  var stageIdx = stageToCycle(j.stage, p.index);
   STAGE_ORDER.forEach(function (s, i) {
-    var chip = el("div", "stage-chip" + (i === stageIdx ? " on" : "") + (i < stageIdx ? " ok" : ""));
+    var chip = el("div", "stage-chip" + (i === stageIdx ? " on chip-pop" : "") + (i < stageIdx ? " ok" : ""));
     chip.innerHTML = '<span class="n">Stage ' + (i + 1) + '</span><span class="ic">' + stageIcon(s) + "</span> " + s;
     strip.appendChild(chip);
   });
@@ -525,28 +604,45 @@ function renderCycle() {
   var renderer = RENDERERS[j.view] || RENDERERS.summary;
   var node;
   try { node = renderer(j); } catch (e) { node = el("div", "note", "This activity could not render: " + esc(e.message)); }
-  content.appendChild(node);
+  if (node) {
+    var passiveViews = { summary: 1, diagram: 1, conceptmap: 1, story: 1, graph: 1, worked: 1, concepts: 1, mastery: 1, plan: 1 };
+    if (passiveViews[j.view]) node._demonstrated = true;
+    content.appendChild(node);
+  }
+
+  content.classList.remove("stage-enter-next", "stage-enter-prev");
+  void content.offsetWidth;
+  content.classList.add(dir < 0 ? "stage-enter-prev" : "stage-enter-next");
 
   $("prevStage").disabled = p.index === 0;
   var isLast = p.index >= a.journeys.length - 1;
-  $("nextStage").textContent = isLast ? "Finish journey" : "Next";
+  $("nextStage").textContent = isLast ? "Finish journey" : "Next →";
 }
 
 /* dashboard */
 var charts = {};
 function renderDashboard() {
   var a = state.archetype ? ARCHETYPES[state.archetype] : null;
-  var p = state.archetype ? topicProgress() : { mastery: {}, completed: [], quizLog: { correct: 0, total: 0 } };
+  var p = state.archetype ? topicProgress() : { mastery: {}, completed: [], quizLog: { correct: 0, total: 0 }, transferLog: { correct: 0, total: 0 } };
   var total = a ? a.journeys.length : 6;
   var done = p.completed.length;
   var imm = p.quizLog.total ? Math.round((p.quizLog.correct / p.quizLog.total) * 100) : 0;
-  var ret = Math.round(imm * 0.85), transfer = Math.round(imm * 0.6);
+
+  var topicConcepts = (T && T.concepts) ? T.concepts : [];
+  var srsEntries = topicConcepts.map(function (c) { return state.srs[srsKey(T.id, c.id)]; }).filter(Boolean);
+  var srsLearned = srsEntries.filter(function (s) { return s.reps > 0; }).length;
+  var ret = srsEntries.length ? Math.round((srsLearned / srsEntries.length) * 100) : 0;
+  var retSub = srsEntries.length ? (srsLearned + "/" + srsEntries.length + " SRS cards retained") : "review flashcards to measure";
+
+  var tLog = p.transferLog || { correct: 0, total: 0 };
+  var transfer = tLog.total ? Math.round((tLog.correct / tLog.total) * 100) : 0;
+  var transferSub = tLog.total ? (tLog.correct + "/" + tLog.total + " challenges passed") : "try challenges/simulations";
 
   function kpi(lab, big, sub) { return '<div class="kpi"><div class="lab">' + lab + '</div><div class="big">' + big + '</div><div class="sub">' + sub + "</div></div>"; }
   $("kpis").innerHTML = kpi("Engagement", done + "/" + total, "activities completed") +
-    kpi("Immediate learning", imm + "%", "recall accuracy") +
-    kpi("Delayed retention", ret + "%", "projected") +
-    kpi("Transfer", transfer + "%", "projected");
+    kpi("Immediate learning", p.quizLog.total ? (imm + "%") : "—", p.quizLog.total ? (p.quizLog.correct + "/" + p.quizLog.total + " quiz answers") : "answer a quiz to measure") +
+    kpi("Delayed retention", srsEntries.length ? (ret + "%") : "—", retSub) +
+    kpi("Transfer", tLog.total ? (transfer + "%") : "—", transferSub);
 
   drawEngagement(done, total);
   drawImmediate(imm);
@@ -565,8 +661,10 @@ function renderDashboard() {
     ["Worked example", (used.worked || 0) + (used.guide || 0) + (used.hint || 0)]
   ];
   var maxUse = Math.max.apply(null, rows.map(function (r) { return r[1]; }).concat([1]));
-  var html = '<div class="note"><strong>Content classification:</strong> ' + esc(rep.classification.join(", ")) +
-    " - best representation: <strong>" + esc(rep.representationLabel) + "</strong>. Content decides representation; archetype decides experience.</div>";
+  var activeTopicsCount = Object.keys(state.progress || {}).length;
+  var html = '<div class="note"><strong>Active chapter (' + esc((T && T.title) || "None") + '):</strong> classified as ' + esc(rep.classification.join(", ")) +
+    " — best visual fit: <strong>" + esc(rep.representationLabel) + "</strong>. " +
+    (activeTopicsCount > 1 ? ("Progress tracked across <strong>" + activeTopicsCount + " chapters</strong>.") : "") + "</div>";
   html += '<div style="display:grid;gap:8px;margin-top:10px">';
   rows.forEach(function (r) {
     html += '<div class="mrow"><span>' + r[0] + '</span><div class="mbar"><div style="width:' + Math.round((r[1] / maxUse) * 100) + '%"></div></div><span class="mv">' + r[1] + "</span></div>";
@@ -577,23 +675,23 @@ function renderDashboard() {
 function drawEngagement(done, total) {
   var c = $("engagementChart"); if (!c || !window.Chart) return;
   try { if (charts.eng) charts.eng.destroy(); charts.eng = new Chart(c, {
-    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#19C2AE", "#103433"], borderColor: "#27706A", borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } } } }); } catch (e) {}
+    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#6DA85B", "#1C3123"], borderColor: "#3A5D44", borderWidth: 1.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } } } }); } catch (e) {}
 }
 function drawImmediate(imm) {
   var c = $("immediateChart"); if (!c || !window.Chart) return;
   try { if (charts.imm) charts.imm.destroy(); charts.imm = new Chart(c, {
-    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#19C2AE", borderColor: "#27706A", borderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } } }); } catch (e) {}
+    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#6DA85B", borderColor: "#3A5D44", borderWidth: 1.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } } }); } catch (e) {}
 }
 function drawRetention(imm, ret, transfer) {
   var c = $("retentionChart"); if (!c || !window.Chart) return;
   try { if (charts.ret) charts.ret.destroy(); charts.ret = new Chart(c, {
     type: "bar",
     data: { labels: ["Immediate", "Delayed retention", "Transfer"], datasets: [
-      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#158468", borderColor: "#27706A", borderWidth: 2 },
-      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#19C2AE", borderColor: "#27706A", borderWidth: 2 } ] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E2FAF6", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E2FAF6" }, grid: { color: "rgba(135,197,188,.14)" } } } } }); } catch (e) {}
+      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#E8BE5E", borderColor: "#3A5D44", borderWidth: 1.5 },
+      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#6DA85B", borderColor: "#3A5D44", borderWidth: 1.5 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } } }); } catch (e) {}
 }
 
 /* quiz engine */

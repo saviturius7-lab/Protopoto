@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "build": "node --check server.js && node --check data.js && node --check engine.js && node --check rag.js && node --check renderers.js && node --check features.js",
-    "lint": "node --check server.js && node --check data.js && node --check engine.js && node --check rag.js && node --check renderers.js && node --check features.js"
+    "build": "node --check server.js && node --check data.js && node --check engine.js && node --check rag.js && node --check renderers.js && node --check features.js && node --check rabbits.js",
+    "lint": "node --check server.js && node --check data.js && node --check engine.js && node --check rag.js && node --check renderers.js && node --check features.js && node --check rabbits.js"
   },
   "dependencies": {
     "express": "^4.21.2",

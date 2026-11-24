@@ -4,8 +4,19 @@
 
 /* ============================== TEXTBOOKS & LOCAL RAG ============================== */
 
-var pdfTextCache = "";
 var ragTargetMode = "active"; // "new" or "active"
+var ragStatusCache = null;
+
+function fetchRagStatusOnce(cb) {
+  if (ragStatusCache) { if (cb) cb(ragStatusCache); return; }
+  fetch("/api/rag/status").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    ragStatusCache = d || { nvidiaEnabled: false };
+    if (cb) cb(ragStatusCache);
+  }).catch(function () {
+    ragStatusCache = { nvidiaEnabled: false };
+    if (cb) cb(ragStatusCache);
+  });
+}
 
 function getRagTopic() {
   return getTopic(state.activeTopicId);
@@ -143,7 +154,31 @@ function syncExtractionWithPythonNlp(topicId, extracted) {
       if (isCustom || !(merged.explain && merged.explain.keywords && merged.explain.keywords.length)) postPatch.explain = extra.explain;
       if (isCustom || !merged.classification) postPatch.classification = extra.classification;
       if (!merged.process || !merged.process.length) postPatch.process = extra.process;
+      if (isCustom || !(merged.worked && merged.worked.length)) postPatch.worked = extra.worked;
+      if (isCustom || !(merged.guide && merged.guide.length)) postPatch.guide = extra.guide;
+      if (isCustom || !(merged.hint && merged.hint.hints && merged.hint.hints.length)) postPatch.hint = extra.hint;
+      if (isCustom || !(merged.hook && merged.hook.prompt)) postPatch.hook = extra.hook;
+      if (isCustom || !(merged.evidence && merged.evidence.options && merged.evidence.options.length > 1 && merged.evidence.why)) postPatch.evidence = extra.evidence;
+      if (isCustom || !(merged.challenge && merged.challenge.keywords && merged.challenge.keywords.length)) postPatch.challenge = extra.challenge;
+      if (isCustom || !(merged.game && merged.game.sliders && merged.game.sliders.length >= 2 && merged.game.goal !== "Adjust the variables.")) postPatch.game = extra.game;
+      if (isCustom || !(merged.misconceptions && merged.misconceptions.length)) postPatch.misconceptions = extra.misconceptions;
       saveTopicRagUpdate(topicId, postPatch);
+      return ragBackendGenerateQuiz(getTopic(topicId), 5).then(function (qRes) {
+        if (qRes && qRes.engine === "nvidia-rag" && Array.isArray(qRes.quiz) && qRes.quiz.length) {
+          var latest = getTopic(topicId);
+          var combined = [];
+          var seen = {};
+          qRes.quiz.concat((latest && latest.quiz) || []).forEach(function (item) {
+            if (item && item.q && !seen[item.q] && combined.length < 12) {
+              seen[item.q] = 1;
+              combined.push(item);
+            }
+          });
+          saveTopicRagUpdate(topicId, { quiz: combined });
+        }
+        if (edTopicId === topicId) edDraft = null;
+        return res;
+      });
     }
     if (edTopicId === topicId) edDraft = null;
     return res;
@@ -232,25 +267,70 @@ function renderUpload() {
     autoBtn.addEventListener("click", function () {
       var tp = getRagTopic();
       if (!tp) return;
+      var hasDocs = tp.ragDocs && tp.ragDocs.length > 0;
       var synth = ragAutoExtractUnits(tp);
       saveTopicRagUpdate(tp.id, synth);
       if (edTopicId === tp.id) edDraft = null;
       renderRagWorkspace();
-      var rawTextForNlp = tp.source_text || (tp.ragChunks || []).map(function (c) { return c.text; }).join("\n\n");
-      if (rawTextForNlp) {
-        syncExtractionWithPythonNlp(tp.id, {
-          doc: { id: "src_" + tp.id, name: tp.title || "Source", type: "text" },
-          pages: [{ page: 1, location: "Source Notes", text: rawTextForNlp }],
-          stats: tp.extractedStats || [],
-          text: rawTextForNlp
-        }).then(function (res) {
+
+      if (hasDocs) {
+        Promise.all([
+          fetch("/api/nlp/topic/" + encodeURIComponent(tp.id)).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+          ragBackendGenerateQuiz(getTopic(tp.id), 5)
+        ]).then(function (results) {
+          var nlpTopic = results[0];
+          var qRes = results[1];
+          var latest = getTopic(tp.id);
+          if (!latest) return;
+          var patch = {};
+          if (nlpTopic) {
+            if (Array.isArray(nlpTopic.keywords) && nlpTopic.keywords.length) patch.nlpKeywords = nlpTopic.keywords;
+            if (Array.isArray(nlpTopic.hierarchy) && nlpTopic.hierarchy.length) patch.hierarchy = nlpTopic.hierarchy;
+          }
+          var mergedQuiz = [];
+          var qSeen = {};
+          var nvidiaQ = (qRes && qRes.engine === "nvidia-rag" && Array.isArray(qRes.quiz)) ? qRes.quiz : [];
+          var nlpQ = (nlpTopic && Array.isArray(nlpTopic.quiz)) ? nlpTopic.quiz : [];
+          nvidiaQ.concat(nlpQ).concat(latest.quiz || []).forEach(function (item) {
+            if (item && item.q && !qSeen[item.q] && mergedQuiz.length < 14) {
+              qSeen[item.q] = 1;
+              mergedQuiz.push(item);
+            }
+          });
+          if (mergedQuiz.length) patch.quiz = mergedQuiz;
+          saveTopicRagUpdate(tp.id, patch);
+          var fullSynth = ragAutoExtractUnits(getTopic(tp.id));
+          saveTopicRagUpdate(tp.id, fullSynth);
+          if (edTopicId === tp.id) edDraft = null;
           renderRagWorkspace();
           var updated = getTopic(tp.id);
-          var qCount = updated && updated.quiz ? updated.quiz.length : synth.quiz.length;
-          toast("Built " + qCount + " quiz questions, " + (updated ? updated.concepts.length : synth.concepts.length) + " concepts!");
+          toast("Built " + (updated && updated.quiz ? updated.quiz.length : 0) + " quiz questions & full 8-archetype units!");
         });
       } else {
-        toast("Built " + synth.quiz.length + " quiz questions, " + synth.concepts.length + " concepts, and " + synth.relationships.length + " links.");
+        var rawTextForNlp = (tp.source_text || (tp.ragChunks || []).map(function (c) { return c.text; }).join("\n\n")).trim();
+        if (rawTextForNlp) {
+          syncExtractionWithPythonNlp(tp.id, {
+            doc: { id: "notes_" + tp.id, name: tp.title || "Source Notes", type: "text" },
+            pages: [{ page: 1, location: "Source Notes", text: rawTextForNlp }],
+            stats: tp.extractedStats || [],
+            text: rawTextForNlp
+          }).then(function () {
+            renderRagWorkspace();
+            var updated = getTopic(tp.id);
+            var qCount = updated && updated.quiz ? updated.quiz.length : synth.quiz.length;
+            toast("Built " + qCount + " quiz questions, " + (updated ? updated.concepts.length : synth.concepts.length) + " concepts!");
+          });
+        } else {
+          ragBackendGenerateQuiz(tp, 5).then(function (qRes) {
+            if (qRes && qRes.engine === "nvidia-rag" && Array.isArray(qRes.quiz) && qRes.quiz.length) {
+              saveTopicRagUpdate(tp.id, { quiz: qRes.quiz });
+              renderRagWorkspace();
+              toast("Built " + qRes.quiz.length + " grounded NVIDIA RAG quiz questions!");
+            } else {
+              toast("Built " + synth.quiz.length + " quiz questions, " + synth.concepts.length + " concepts, and " + synth.relationships.length + " links.");
+            }
+          });
+        }
       }
     });
   }
@@ -280,22 +360,40 @@ function renderUpload() {
     qInp.addEventListener("keydown", function (e) { if (e.key === "Enter") runRagQuery(); });
   }
 
-  var cb = $("createTopicBtn");
-  if (cb && !cb._wired) {
-    cb._wired = true;
-    cb.addEventListener("click", function () {
-      if (!pdfTextCache) { toast("Import a file first."); return; }
-      var topic = createEmptyCustomTopic(titleInp && titleInp.value);
-      var chunks = ragChunkText(pdfTextCache, { docId: "src_" + Date.now(), sourceName: topic.title, sourceType: "text", location: "Document" });
-      topic.source_text = pdfTextCache;
-      topic.ragChunks = chunks;
-      state.customTopics.push(topic);
-      state.edits[topic.id] = { source_text: pdfTextCache, ragChunks: chunks };
-      setTopic(topic.id);
-      ragTargetMode = "active";
-      syncTargetDropdown();
-      renderRagWorkspace();
-      toast("Topic created.");
+  var imgGenBtn = $("imgGenBtn");
+  if (imgGenBtn && !imgGenBtn._wired) {
+    imgGenBtn._wired = true;
+    imgGenBtn.addEventListener("click", function () {
+      var tp = getRagTopic();
+      if (!tp) return;
+      var promptInp = $("imgGenPrompt");
+      var styleSel = $("imgGenStyle");
+      var statusEl = $("imgGenStatus");
+      var previewEl = $("imgGenPreview");
+      var prompt = (promptInp && promptInp.value || "").trim();
+      if (!prompt) {
+        var topNames = (tp.concepts || []).slice(0, 3).map(function (c) { return c.name; }).join(", ");
+        prompt = tp.title + (topNames ? (" featuring " + topNames) : "");
+        if (promptInp) promptInp.value = prompt;
+      }
+      imgGenBtn.disabled = true;
+      if (statusEl) statusEl.textContent = "Generating artwork via NVIDIA NIM Text-to-Image...";
+      ragBackendGenerateImage(prompt, styleSel ? styleSel.value : "scenic").then(function (res) {
+        imgGenBtn.disabled = false;
+        if (!res || !res.ok || !res.url) {
+          if (statusEl) statusEl.textContent = (res && res.error) ? res.error : "Image generation unavailable.";
+          toast((res && res.error) ? res.error : "Could not generate image.");
+          return;
+        }
+        saveTopicRagUpdate(tp.id, { image: res.url });
+        if (edTopicId === tp.id) edDraft = null;
+        if (statusEl) statusEl.textContent = "Saved artwork to " + tp.title + " (" + (res.model || "NIM") + ").";
+        if (previewEl) {
+          previewEl.classList.remove("hidden");
+          previewEl.innerHTML = '<img src="' + esc(res.url) + '" alt="' + esc(prompt) + '" referrerpolicy="no-referrer" style="width:100%;max-height:240px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border)" />';
+        }
+        toast("Generated and attached topic artwork!");
+      });
     });
   }
 
@@ -336,15 +434,6 @@ function handleMultiFiles(fileList) {
   var totalChunksAdded = 0;
   function nextFile() {
     if (idx >= files.length) {
-      var tp = getTopic(targetId);
-      if (tp) {
-        pdfTextCache = tp.source_text || "";
-        var text = $("pdfText");
-        if (text && pdfTextCache) {
-          text.textContent = pdfTextCache.slice(0, 6000) + (pdfTextCache.length > 6000 ? "\n\n... [truncated preview; full text indexed in RAG]" : "");
-          if ($("pdfResult")) $("pdfResult").classList.remove("hidden");
-        }
-      }
       if (status) status.textContent = "Done. Indexed " + files.length + " file(s) (" + totalChunksAdded + " passages extracted).";
       renderRagWorkspace();
       toast("Extracted & indexed " + files.length + " file(s).");
@@ -385,6 +474,10 @@ function renderRagWorkspace() {
 
   var statsLine = $("ragIndexStats");
   if (statsLine) {
+    var nvOn = ragStatusCache ? !!(ragStatusCache.nvidiaConfigured || ragStatusCache.nvidiaEnabled) : false;
+    var modeText = ragStatusCache
+      ? (nvOn ? "NVIDIA NIM RAG active" : "Local Python BM25 + SQLite")
+      : "Checking RAG engine...";
     statsLine.innerHTML =
       '<span>Topic: <strong>' + esc(tp.title) + "</strong></span>" +
       '<span class="sep" aria-hidden="true">·</span>' +
@@ -392,7 +485,16 @@ function renderRagWorkspace() {
       '<span class="sep" aria-hidden="true">·</span>' +
       '<span>' + chunks.length + ' indexed passage(s)</span>' +
       '<span class="sep" aria-hidden="true">·</span>' +
-      '<span>' + stats.length + ' extracted metric(s)</span>';
+      '<span>' + stats.length + ' extracted metric(s)</span>' +
+      '<span class="sep" aria-hidden="true">·</span>' +
+      '<span id="ragModeIndicator">' + esc(modeText) + '</span>';
+    if (!ragStatusCache) {
+      fetchRagStatusOnce(function (st) {
+        var elMode = $("ragModeIndicator");
+        var enabled = !!(st && (st.nvidiaConfigured || st.nvidiaEnabled));
+        if (elMode) elMode.textContent = enabled ? "NVIDIA NIM RAG active" : "Local Python BM25 + SQLite";
+      });
+    }
   }
 
   var grid = $("ragDocsGrid");
@@ -403,13 +505,31 @@ function renderRagWorkspace() {
     } else {
       docs.forEach(function (d, dIdx) {
         var card = el("div", "rag-doc");
-        var typeTag = d.type === "pdf" ? "PDF" : (d.type === "excel" ? "EXCEL / CSV" : (d.type === "image" ? "IMAGE + OCR" : "STATS / TEXT"));
+        var typeTag = d.type === "pdf" ? "PDF" : (d.type === "excel" ? "EXCEL / CSV" : (d.type === "image" ? "IMAGE + VISION" : "STATS / TEXT"));
         var meta = d.type === "pdf" ? (d.pages + " pages · " + d.chunkCount + " chunks") :
           (d.type === "excel" ? (d.sheets + " sheet(s) · " + d.rows + " rows · " + d.chunkCount + " chunks") :
           (d.type === "image" ? (d.width + "×" + d.height + "px · brightness " + d.brightnessPct + "%") : (d.chunkCount + " chunks")));
         var html = '<div class="row"><span class="status-text now">' + typeTag + '</span><button class="btn ghost sm" style="padding:3px 9px;font-size:.76rem" data-deldoc="' + dIdx + '">Remove</button></div>';
         if (d.thumb) {
-          html += '<img class="rag-thumb" src="' + esc(d.thumb) + '" alt="' + esc(d.name) + '" referrerpolicy="no-referrer" />';
+          var boxesSvg = "";
+          if (Array.isArray(d.detections) && d.detections.length) {
+            boxesSvg = '<svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">';
+            d.detections.slice(0, 12).forEach(function (b) {
+              var x = Math.max(0, Math.min(1, Number(b.xmin) || 0));
+              var y = Math.max(0, Math.min(1, Number(b.ymin) || 0));
+              var x2 = Math.max(x, Math.min(1, Number(b.xmax) || 0));
+              var y2 = Math.max(y, Math.min(1, Number(b.ymax) || 0));
+              if (x2 > 1 || y2 > 1) {
+                x = (Number(b.xmin) || 0) / Math.max(1, d.width || 1);
+                y = (Number(b.ymin) || 0) / Math.max(1, d.height || 1);
+                x2 = (Number(b.xmax) || 0) / Math.max(1, d.width || 1);
+                y2 = (Number(b.ymax) || 0) / Math.max(1, d.height || 1);
+              }
+              boxesSvg += '<rect x="' + x.toFixed(4) + '" y="' + y.toFixed(4) + '" width="' + Math.max(0.02, x2 - x).toFixed(4) + '" height="' + Math.max(0.02, y2 - y).toFixed(4) + '" fill="rgba(228,168,92,0.12)" stroke="#E4A85C" stroke-width="0.012" />';
+            });
+            boxesSvg += "</svg>";
+          }
+          html += '<div style="position:relative;border-radius:8px;overflow:hidden"><img class="rag-thumb" src="' + esc(d.thumb) + '" alt="' + esc(d.name) + '" referrerpolicy="no-referrer" />' + boxesSvg + '</div>';
         }
         html += '<div><strong>' + esc(d.name) + '</strong><div class="small muted">' + esc(meta) + '</div></div>';
         if (d.type === "image") {
@@ -417,9 +537,17 @@ function renderRagWorkspace() {
             return '<span style="display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--border);background:' + esc(c) + ';vertical-align:middle;margin-right:4px" title="' + esc(c) + '"></span>';
           }).join("");
           html += '<div class="small muted">Palette: ' + swatches + ' · ' + esc(d.ocrNote || "") + '</div>';
+          if (d.detections && d.detections.length) {
+            html += '<div class="small" style="color:var(--gold)"><strong>Object detection:</strong> ' + esc(d.detectionSummary || (d.detections.length + " regions")) + '</div>';
+          } else if (d.detectionSummary) {
+            html += '<div class="small muted">' + esc(d.detectionSummary) + '</div>';
+          }
           html += '<label style="margin:4px 0 2px;font-size:.78rem">Extracted OCR / Image caption (editable)</label>';
           html += '<textarea data-imgnote="' + dIdx + '" style="min-height:68px;font-size:.82rem">' + esc(d.ocrText || "") + '</textarea>';
-          html += '<button class="btn secondary sm" data-saveimg="' + dIdx + '">Update image text in RAG</button>';
+          html += '<div class="row" style="gap:6px;justify-content:flex-start">' +
+            '<button class="btn secondary sm" data-saveimg="' + dIdx + '">Update text</button>' +
+            '<button class="btn ghost sm" data-detectimg="' + dIdx + '">Detect regions</button>' +
+            '</div>';
         } else {
           html += '<div class="small muted" style="max-height:76px;overflow:hidden">' + esc((d.previewText || "").slice(0, 180)) + '...</div>';
         }
@@ -435,9 +563,26 @@ function renderRagWorkspace() {
           var newDocs = docs.filter(function (_, idx) { return idx !== i; });
           var newChunks = (tp.ragChunks || []).filter(function (c) { return c.docId !== removed.id; });
           var newStats = (tp.extractedStats || []).filter(function (s) { return (s.sourceName || "").indexOf(removed.name) !== 0; });
-          saveTopicRagUpdate(tp.id, { ragDocs: newDocs, ragChunks: newChunks, extractedStats: newStats });
+          var newSourceText = newChunks.map(function (c) { return c.text; }).join("\n\n");
+          saveTopicRagUpdate(tp.id, {
+            ragDocs: newDocs,
+            ragChunks: newChunks,
+            extractedStats: newStats,
+            source_text: newSourceText
+          });
           renderRagWorkspace();
           toast("Removed " + removed.name + " from index.");
+          fetch("/api/nlp/doc/" + encodeURIComponent(removed.id) + "?topicId=" + encodeURIComponent(tp.id), {
+            method: "DELETE"
+          }).then(function (r) { return r.ok ? r.json() : null; }).then(function (res) {
+            if (res && !res.error) {
+              saveTopicRagUpdate(tp.id, {
+                nlpKeywords: Array.isArray(res.keywords) ? res.keywords : [],
+                hierarchy: Array.isArray(res.hierarchy) ? res.hierarchy : []
+              });
+              renderRagWorkspace();
+            }
+          }).catch(function () {});
         });
       });
 
@@ -455,7 +600,7 @@ function renderRagWorkspace() {
             { docId: docObj.id, sourceName: docObj.name, sourceType: "image", location: "Image OCR & Notes" }
           );
           docObj.chunkCount = freshChunks.length;
-          var freshStats = (tp.extractedStats || []).filter(function (s) { return s.sourceName !== docObj.name || /Resolution|Brightness/i.test(s.label); })
+          var freshStats = (tp.extractedStats || []).filter(function (s) { return s.sourceName !== docObj.name || /Resolution|Brightness|Detected/i.test(s.label); })
             .concat(extractNumericStatsFromText(ta.value, docObj.name));
           saveTopicRagUpdate(tp.id, { ragDocs: docs, ragChunks: otherChunks.concat(freshChunks), extractedStats: freshStats });
           renderRagWorkspace();
@@ -466,6 +611,49 @@ function renderRagWorkspace() {
             stats: freshStats,
             text: ta.value
           }).then(function (res) { if (res) renderRagWorkspace(); });
+        });
+      });
+
+      grid.querySelectorAll("[data-detectimg]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var i = +btn.getAttribute("data-detectimg");
+          var docObj = docs[i];
+          if (!docObj || !docObj.thumb) {
+            toast("Re-upload image to run object detection.");
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = "Detecting...";
+          ragBackendDetectObjects(docObj.thumb, 0.4).then(function (visRes) {
+            btn.disabled = false;
+            btn.textContent = "Detect regions";
+            if (!visRes || !visRes.ok) {
+              docObj.detectionSummary = (visRes && visRes.error) || "Detection unavailable";
+              saveTopicRagUpdate(tp.id, { ragDocs: docs });
+              renderRagWorkspace();
+              toast(docObj.detectionSummary);
+              return;
+            }
+            docObj.detections = visRes.detections || [];
+            docObj.detectionSummary = visRes.summary || (docObj.detections.length + " regions detected");
+            var otherChunks = (tp.ragChunks || []).filter(function (c) { return c.docId !== docObj.id; });
+            var detText = "Image " + docObj.name + " detected regions: " + docObj.detectionSummary + (docObj.ocrText ? ("\n\n" + docObj.ocrText) : "");
+            var freshChunks = ragChunkText(detText, { docId: docObj.id, sourceName: docObj.name, sourceType: "image", location: "Image Vision + OCR" });
+            docObj.chunkCount = freshChunks.length;
+            var freshStats = (tp.extractedStats || []).filter(function (s) { return !(s.sourceName === docObj.name && s.label === "Detected Elements"); });
+            if (docObj.detections.length) {
+              freshStats.push({ sourceName: docObj.name, label: "Detected Elements", value: docObj.detections.length, unit: "regions", summary: docObj.name + " detected: " + docObj.detectionSummary });
+            }
+            saveTopicRagUpdate(tp.id, { ragDocs: docs, ragChunks: otherChunks.concat(freshChunks), extractedStats: freshStats });
+            renderRagWorkspace();
+            toast("Detected: " + docObj.detectionSummary);
+            syncExtractionWithPythonNlp(tp.id, {
+              doc: docObj,
+              pages: [{ page: 1, location: "Image Vision + OCR", text: detText }],
+              stats: freshStats,
+              text: detText
+            }).then(function (res) { if (res) renderRagWorkspace(); });
+          });
         });
       });
     }
@@ -604,9 +792,11 @@ function runRagQuery() {
     if (res.answerSummary) {
       var syn = el("div", "note");
       syn.style.margin = "0";
-      var modeLabel = res.engine === "python-hybrid-sqlite"
-        ? "Retrieved Hybrid RAG Context (Python BM25 + Semantic · SQLite)"
-        : "Retrieved RAG Context (Local BM25)";
+      var modeLabel = res.engine === "nvidia-rag"
+        ? ("Grounded NVIDIA RAG Answer (" + esc(res.model || "NIM") + ")")
+        : (res.engine === "python-hybrid-sqlite"
+          ? "Retrieved Hybrid RAG Context (Python BM25 + Semantic · SQLite)"
+          : "Retrieved RAG Context (Local BM25)");
       syn.innerHTML = '<div class="status-text done" style="margin-bottom:6px">' + modeLabel + " — Top " + res.results.length + " grounded passages</div>" +
         '<div class="small" style="white-space:pre-line">' + highlightMatches(res.answerSummary, res.queryTokens) + "</div>";
       box.appendChild(syn);
@@ -720,6 +910,27 @@ function renderEditor() {
     resetBtn._wired = true;
     resetBtn.addEventListener("click", function () {
       if (!edTopicId) return;
+      if (edTopicId.indexOf("custom_") === 0) {
+        var cur = getTopic(edTopicId);
+        if (cur) {
+          var rebuilt = ragAutoExtractUnits({
+            id: cur.id,
+            title: cur.title,
+            summary: cur.summary,
+            source_text: cur.source_text,
+            ragDocs: cur.ragDocs || [],
+            ragChunks: cur.ragChunks || [],
+            extractedStats: cur.extractedStats || [],
+            hierarchy: cur.hierarchy || [],
+            nlpKeywords: cur.nlpKeywords || [],
+            graph: cur.graph || { labels: [], series: [] }
+          });
+          saveTopicRagUpdate(edTopicId, rebuilt);
+          loadEditorDraft(edTopicId);
+          toast("Rebuilt knowledge units from your uploaded sources.");
+          return;
+        }
+      }
       delete state.edits[edTopicId];
       store();
       loadEditorDraft(edTopicId);
@@ -954,6 +1165,10 @@ function drawSourceEditor() {
 function saveEditor() {
   if (!edDraft || !edTopicId) return;
   var prev = state.edits[edTopicId] || {};
+  var prevSource = prev.source_text || "";
+  var nextSource = edDraft.source_text || "";
+  var sourceChanged = prevSource !== nextSource;
+
   prev.title = edDraft.title;
   prev.summary = edDraft.summary;
   prev.classification = edDraft.classification || "concept";
@@ -961,8 +1176,20 @@ function saveEditor() {
   prev.quiz = edDraft.quiz;
   prev.relationships = edDraft.relationships || [];
   prev.graph = edDraft.graph || { labels: [], series: [] };
-  prev.source_text = edDraft.source_text || "";
+  prev.source_text = nextSource;
+
+  var hasUploadedFiles = prev.ragDocs && prev.ragDocs.length > 0;
+  if (sourceChanged && !hasUploadedFiles) {
+    prev.ragChunks = nextSource.trim()
+      ? ragChunkText(nextSource, { docId: "notes_" + edTopicId, sourceName: edDraft.title || "Source Notes", sourceType: "text", location: "Source Notes" })
+      : [];
+  }
+
   state.edits[edTopicId] = prev;
+  if (edTopicId.indexOf("custom_") === 0) {
+    var ct = (state.customTopics || []).find(function (t) { return t.id === edTopicId; });
+    if (ct) Object.keys(prev).forEach(function (k) { ct[k] = prev[k]; });
+  }
   // refresh derived progress mastery keys
   var p = state.progress[edTopicId];
   if (p) { p.mastery = p.mastery || {}; edDraft.concepts.forEach(function (c) { if (p.mastery[c.id] == null) p.mastery[c.id] = 0; }); }
@@ -970,6 +1197,22 @@ function saveEditor() {
   T = getTopic(edTopicId);
   if ($("editorTopicName") && T) $("editorTopicName").textContent = "(" + T.title + ")";
   toast("Saved. Journeys now use your edited knowledge.");
+
+  if (sourceChanged && !hasUploadedFiles && nextSource.trim()) {
+    ragBackendIngest(edTopicId, edDraft.title, {
+      doc: { id: "notes_" + edTopicId, name: edDraft.title || "Source Notes", type: "text" },
+      pages: [{ page: 1, location: "Source Notes", text: nextSource }],
+      stats: prev.extractedStats || [],
+      text: nextSource
+    }).then(function (res) {
+      if (res && res.engine) {
+        saveTopicRagUpdate(edTopicId, {
+          nlpKeywords: res.keywords || [],
+          hierarchy: res.hierarchy || []
+        });
+      }
+    }).catch(function () {});
+  }
 }
 
 /* ============================== REVIEW (SRS) ============================== */
@@ -1098,13 +1341,13 @@ function init() {
         startOnLoad: false,
         theme: "base",
         themeVariables: {
-          background: "#0A2322",
-          primaryColor: "#144A47",
-          primaryTextColor: "#E2FAF6",
-          primaryBorderColor: "#2DDAC2",
-          lineColor: "#2DDAC2",
-          secondaryColor: "#0E3634",
-          tertiaryColor: "#103F38"
+          background: "#1C3123",
+          primaryColor: "#233C2B",
+          primaryTextColor: "#E6EDE2",
+          primaryBorderColor: "#6DA85B",
+          lineColor: "#E8BE5E",
+          secondaryColor: "#1D3A27",
+          tertiaryColor: "#2C3321"
         }
       });
     } catch (e) {}
@@ -1130,20 +1373,32 @@ function init() {
   });
 
   var restart = $("restartJourneyBtn");
-  if (restart) restart.addEventListener("click", function () { if (state.archetype) startJourney(state.archetype); });
+  if (restart) restart.addEventListener("click", function () { if (state.archetype) startJourney(state.archetype, { resetProgress: true }); });
 
   var next = $("nextStage");
   if (next) next.addEventListener("click", function () {
     if (!state.archetype) return;
     var a = ARCHETYPES[state.archetype];
     var p = topicProgress();
-    if (p.completed.indexOf(p.index) === -1) { p.completed.push(p.index); state.xp += 10; store(); if ($("xpVal")) $("xpVal").textContent = state.xp; }
+    var activeNode = $("stageContent") && $("stageContent").firstElementChild;
+    var isDemonstrated = !activeNode || !!activeNode._demonstrated;
+    if (!isDemonstrated && !activeNode._warned) {
+      activeNode._warned = true;
+      toast("Complete the activity first to earn XP & mastery — click Next again to skip.");
+      return;
+    }
+    if (isDemonstrated && p.completed.indexOf(p.index) === -1) {
+      p.completed.push(p.index);
+      state.xp += 10;
+      store();
+      if ($("xpVal")) $("xpVal").textContent = state.xp;
+    }
     if (p.index >= a.journeys.length - 1) { showScreen("quest"); toast("Journey complete!"); return; }
-    p.index++; store(); renderCycle(); window.scrollTo({ top: 0, behavior: "smooth" });
+    p.index++; store(); triggerTopbarSweep(); renderCycle(1); window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
   var prev = $("prevStage");
-  if (prev) prev.addEventListener("click", function () { var p = topicProgress(); if (p.index > 0) { p.index--; store(); renderCycle(); } });
+  if (prev) prev.addEventListener("click", function () { var p = topicProgress(); if (p.index > 0) { p.index--; store(); triggerTopbarSweep(); renderCycle(-1); } });
 
   var back = $("backToQuest");
   if (back) back.addEventListener("click", function () { showScreen("quest"); });

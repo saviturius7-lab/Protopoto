@@ -265,10 +265,30 @@ function ragBackendIngest(topicId, topicTitle, extracted) {
 function ragBackendSearch(topic, query, topK) {
   topK = topK || 5;
   if (!topic || !query) return Promise.resolve(ragSearch(topic, query, topK));
-  return fetch("/api/nlp/search", {
+  var fallbackChunks = ragEnsureTopicChunks(topic).slice(0, 40).map(function (c) {
+    return {
+      id: c.id,
+      docId: c.docId,
+      sourceName: c.sourceName,
+      sourceType: c.sourceType,
+      pageNum: c.pageNum || 0,
+      section: c.section || "",
+      location: c.location || "Section",
+      text: String(c.text || "").slice(0, 800)
+    };
+  });
+  var stats = (topic.extractedStats || []).slice(0, 8);
+  return fetch("/api/rag/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ topicId: topic.id, query: query, topK: topK })
+    body: JSON.stringify({
+      topicId: topic.id,
+      topicTitle: topic.title || "Topic",
+      query: query,
+      topK: topK,
+      fallbackChunks: fallbackChunks,
+      stats: stats
+    })
   }).then(function (r) {
     if (!r.ok) throw new Error("HTTP " + r.status);
     return r.json();
@@ -278,38 +298,70 @@ function ragBackendSearch(topic, query, topK) {
       return ragSearch(topic, query, topK);
     }
     var qTokens = (data.query_tokens && data.query_tokens.length) ? data.query_tokens : ragTokenize(query);
-    var stats = topic.extractedStats || [];
     var matchingStats = stats.filter(function (st) {
       var hay = (st.label + " " + (st.sheet || "") + " " + (st.sourceName || "") + " " + (st.summary || "")).toLowerCase();
       return qTokens.some(function (qt) { return hay.indexOf(qt) > -1; });
     }).slice(0, 6);
 
-    var parts = [];
-    results.slice(0, 3).forEach(function (r) {
-      var ch = r.chunk;
-      var sentences = ch.text.split(/(?<=[.!?])\s+|\n+/);
-      var bestSent = sentences[0] || ch.text;
-      var bestHits = -1;
-      sentences.forEach(function (s) {
-        var sl = s.toLowerCase();
-        var hits = qTokens.filter(function (qt) { return sl.indexOf(qt) > -1; }).length;
-        if (hits > bestHits && s.trim().length > 10) { bestHits = hits; bestSent = s.trim(); }
+    var summary = (data.answerSummary && String(data.answerSummary).trim()) || "";
+    if (!summary) {
+      var parts = [];
+      results.slice(0, 3).forEach(function (r) {
+        var ch = r.chunk;
+        var sentences = ch.text.split(/(?<=[.!?])\s+|\n+/);
+        var bestSent = sentences[0] || ch.text;
+        var bestHits = -1;
+        sentences.forEach(function (s) {
+          var sl = s.toLowerCase();
+          var hits = qTokens.filter(function (qt) { return sl.indexOf(qt) > -1; }).length;
+          if (hits > bestHits && s.trim().length > 10) { bestHits = hits; bestSent = s.trim(); }
+        });
+        var locTag = ch.section && ch.section !== "Overview" ? (ch.section + " · " + ch.location) : ch.location;
+        parts.push("[" + ch.sourceName + " · " + locTag + "] " + bestSent.slice(0, 220));
       });
-      var locTag = ch.section && ch.section !== "Overview" ? (ch.section + " · " + ch.location) : ch.location;
-      parts.push("[" + ch.sourceName + " · " + locTag + "] " + bestSent.slice(0, 220));
-    });
-    if (matchingStats.length) {
-      parts.push("Matching metrics: " + matchingStats.map(function (s) { return s.summary; }).slice(0, 3).join("; "));
+      if (matchingStats.length) {
+        parts.push("Matching metrics: " + matchingStats.map(function (s) { return s.summary; }).slice(0, 3).join("; "));
+      }
+      summary = parts.join("\n\n");
     }
+
     return {
       results: results,
       matchingStats: matchingStats,
-      answerSummary: parts.join("\n\n"),
+      answerSummary: summary,
       queryTokens: qTokens,
-      engine: "python-hybrid-sqlite"
+      engine: data.engine || "python-hybrid-sqlite",
+      model: data.model || ""
     };
   }).catch(function () {
     return ragSearch(topic, query, topK);
+  });
+}
+
+function ragBackendGenerateQuiz(topic, count) {
+  if (!topic) return Promise.resolve(null);
+  var chunks = ragEnsureTopicChunks(topic).slice(0, 12).map(function (c) {
+    return {
+      sourceName: c.sourceName,
+      pageNum: c.pageNum || 0,
+      location: c.location || "Section",
+      text: String(c.text || "").slice(0, 800)
+    };
+  });
+  return fetch("/api/rag/generate-quiz", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topicId: topic.id,
+      topicTitle: topic.title || "Topic",
+      count: count || 5,
+      chunks: chunks
+    })
+  }).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).catch(function () {
+    return null;
   });
 }
 
@@ -591,8 +643,58 @@ function ragExtractSpreadsheetFile(file) {
   });
 }
 
+function ragPrepareImageDataUrl(img, maxSide) {
+  maxSide = maxSide || 1280;
+  var nw = img.naturalWidth || img.width || 100;
+  var nh = img.naturalHeight || img.height || 100;
+  var scale = Math.min(1, maxSide / Math.max(1, nw, nh));
+  var w = Math.max(1, Math.round(nw * scale));
+  var h = Math.max(1, Math.round(nh * scale));
+  var canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  var ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, w, h);
+  try {
+    return canvas.toDataURL("image/jpeg", 0.86);
+  } catch (e) {
+    return "";
+  }
+}
+
+function ragBackendDetectObjects(imageDataUrl, threshold) {
+  if (!imageDataUrl) return Promise.resolve({ ok: false, detections: [], summary: "" });
+  return fetch("/api/vision/detect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageDataUrl: imageDataUrl, threshold: threshold || 0.45 })
+  }).then(function (r) {
+    return r.json().then(function (d) {
+      if (!r.ok) return { ok: false, error: (d && d.error) || ("HTTP " + r.status), visionConfigured: d && d.visionConfigured, detections: [] };
+      return { ok: true, engine: d.engine, model: d.model, detections: d.detections || [], counts: d.counts || {}, summary: d.summary || "" };
+    });
+  }).catch(function (err) {
+    return { ok: false, error: err && err.message ? err.message : "Network error", detections: [] };
+  });
+}
+
+function ragBackendGenerateImage(prompt, style) {
+  return fetch("/api/image/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: prompt, style: style || "scenic", width: 1024, height: 768 })
+  }).then(function (r) {
+    return r.json().then(function (d) {
+      if (!r.ok) return { ok: false, error: (d && d.error) || ("HTTP " + r.status) };
+      return { ok: true, url: d.url, model: d.model };
+    });
+  }).catch(function (err) {
+    return { ok: false, error: err && err.message ? err.message : "Network error" };
+  });
+}
+
 function analyzeImagePixels(img) {
-  var maxW = 240;
+  var maxW = 320;
   var scale = Math.min(1, maxW / Math.max(1, img.naturalWidth || 1));
   var w = Math.max(1, Math.round((img.naturalWidth || 100) * scale));
   var h = Math.max(1, Math.round((img.naturalHeight || 100) * scale));
@@ -627,7 +729,7 @@ function analyzeImagePixels(img) {
       return "#" + p.map(function (n) { return ("0" + Math.min(255, n).toString(16)).slice(-2); }).join("");
     });
   var thumb = "";
-  try { thumb = canvas.toDataURL("image/jpeg", 0.72); } catch (e) {}
+  try { thumb = canvas.toDataURL("image/jpeg", 0.78); } catch (e) {}
   return {
     width: img.naturalWidth,
     height: img.naturalHeight,
@@ -648,23 +750,72 @@ function ragExtractImageFile(file, onProgress) {
       img.onerror = function () { reject(new Error("Invalid or corrupted image file.")); };
       img.onload = function () {
         var visual = analyzeImagePixels(img);
+        var detectUrl = ragPrepareImageDataUrl(img, 1280) || visual.thumb;
         var docId = "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
 
-        function finalize(ocrText, ocrEngineNote) {
-          var cleanOcr = String(ocrText || "").replace(/\r\n/g, "\n").trim();
+        var ocrPromise = new Promise(function (resOcr) {
+          if (window.Tesseract && typeof Tesseract.recognize === "function") {
+            if (onProgress) onProgress("Running OCR & object detection on " + file.name + " ...");
+            var done = false;
+            var timer = setTimeout(function () {
+              if (!done) { done = true; resOcr({ text: "", note: "OCR timed out; visual metadata indexed." }); }
+            }, 22000);
+            Tesseract.recognize(dataUrl, "eng", {
+              logger: function (m) {
+                if (!done && onProgress && m && m.status) {
+                  var pct = m.progress ? (" " + Math.round(m.progress * 100) + "%") : "";
+                  onProgress("OCR (" + file.name + "): " + m.status + pct);
+                }
+              }
+            }).then(function (res) {
+              if (done) return;
+              done = true; clearTimeout(timer);
+              var txt = res && res.data && res.data.text ? res.data.text : "";
+              resOcr({ text: txt, note: txt.trim() ? "OCR extracted locally" : "No text found in image" });
+            }).catch(function () {
+              if (done) return;
+              done = true; clearTimeout(timer);
+              resOcr({ text: "", note: "OCR unavailable offline; visual metadata indexed" });
+            });
+          } else {
+            resOcr({ text: "", note: "OCR library unavailable; visual metadata indexed" });
+          }
+        });
+
+        var visionPromise = ragBackendDetectObjects(detectUrl, 0.45);
+
+        Promise.all([ocrPromise, visionPromise]).then(function (results) {
+          var ocrRes = results[0] || { text: "", note: "" };
+          var visRes = results[1] || { ok: false, detections: [], summary: "" };
+          var cleanOcr = String(ocrRes.text || "").replace(/\r\n/g, "\n").trim();
+          var detections = Array.isArray(visRes.detections) ? visRes.detections : [];
+          var detSummary = visRes.ok && visRes.summary ? visRes.summary : "";
+
           var visualSummary = "Image " + file.name + " (" + visual.width + "x" + visual.height + " px, brightness " +
             visual.brightnessPct + "%, contrast " + visual.contrastPct + "%, palette " + visual.dominantColors.join(" ") + ").";
-          var combinedText = visualSummary + (cleanOcr ? ("\n\nOCR Extracted Text:\n" + cleanOcr) : "\n\n(No readable text detected automatically — add caption or notes below to index visual details.)");
+          var detectBlock = detections.length
+            ? ("\n\nDetected Diagram & Page Regions (" + detections.length + "): " + detSummary + ".")
+            : "";
+          var ocrBlock = cleanOcr
+            ? ("\n\nOCR Extracted Text:\n" + cleanOcr)
+            : (detections.length ? "" : "\n\n(No readable text detected automatically — add caption or notes below to index visual details.)");
+          var combinedText = visualSummary + detectBlock + ocrBlock;
+
           var chunks = ragChunkText(combinedText, {
             docId: docId,
             sourceName: file.name,
             sourceType: "image",
-            location: cleanOcr ? "Image OCR" : "Image Visual Stats"
+            location: detections.length ? "Image Vision + OCR" : (cleanOcr ? "Image OCR" : "Image Visual Stats")
           });
+
           var stats = [
             { sourceName: file.name, label: "Resolution", value: visual.width + "x" + visual.height, unit: "px", summary: file.name + " resolution: " + visual.width + "x" + visual.height + " px" },
             { sourceName: file.name, label: "Brightness / Contrast", value: visual.brightnessPct + "% / " + visual.contrastPct + "%", unit: "", summary: file.name + " brightness " + visual.brightnessPct + "%, contrast " + visual.contrastPct + "%" }
-          ].concat(extractNumericStatsFromText(cleanOcr, file.name));
+          ];
+          if (detections.length) {
+            stats.push({ sourceName: file.name, label: "Detected Elements", value: detections.length, unit: "regions", summary: file.name + " detected: " + detSummary });
+          }
+          stats = stats.concat(extractNumericStatsFromText(cleanOcr, file.name));
 
           resolve({
             doc: {
@@ -677,47 +828,22 @@ function ragExtractImageFile(file, onProgress) {
               contrastPct: visual.contrastPct,
               dominantColors: visual.dominantColors,
               thumb: visual.thumb,
+              detections: detections,
+              detectionSummary: detSummary || (visRes.error ? visRes.error : ""),
               ocrText: cleanOcr,
-              ocrNote: ocrEngineNote,
+              ocrNote: ocrRes.note,
               chars: combinedText.length,
               chunkCount: chunks.length,
               previewText: combinedText.slice(0, 450),
               addedAt: new Date().toISOString()
             },
             chunks: chunks,
-            pages: [{ page: 1, location: cleanOcr ? "Image OCR" : "Image Visual Stats", text: combinedText }],
+            pages: [{ page: 1, location: detections.length ? "Image Vision + OCR" : (cleanOcr ? "Image OCR" : "Image Visual Stats"), text: combinedText }],
             stats: stats,
             text: "--- Image: " + file.name + " ---\n" + combinedText,
             graph: null
           });
-        }
-
-        if (window.Tesseract && typeof Tesseract.recognize === "function") {
-          if (onProgress) onProgress("Running local OCR on " + file.name + " ...");
-          var done = false;
-          var timer = setTimeout(function () {
-            if (!done) { done = true; finalize("", "OCR timed out; visual metadata indexed."); }
-          }, 22000);
-          Tesseract.recognize(dataUrl, "eng", {
-            logger: function (m) {
-              if (!done && onProgress && m && m.status) {
-                var pct = m.progress ? (" " + Math.round(m.progress * 100) + "%") : "";
-                onProgress("OCR (" + file.name + "): " + m.status + pct);
-              }
-            }
-          }).then(function (res) {
-            if (done) return;
-            done = true; clearTimeout(timer);
-            var txt = res && res.data && res.data.text ? res.data.text : "";
-            finalize(txt, txt.trim() ? "OCR extracted locally" : "No text found in image");
-          }).catch(function () {
-            if (done) return;
-            done = true; clearTimeout(timer);
-            finalize("", "OCR unavailable offline; visual metadata indexed");
-          });
-        } else {
-          finalize("", "OCR library unavailable; visual metadata indexed");
-        }
+        });
       };
       img.src = dataUrl;
     };
@@ -997,14 +1123,24 @@ function ragAutoExtractUnits(topic) {
     var out = [];
     var seenD = {};
     seenD[ansLabel.toLowerCase()] = 1;
-    concepts.map(function (x) { return x.name; }).concat(kwTitles).forEach(function (cand) {
+    var docVocab = [];
+    var vSeen = {};
+    chunks.forEach(function (ch) {
+      ragTokenize(ch.text).forEach(function (tok) {
+        if (tok.length >= 5 && !/^\d+$/.test(tok) && !vSeen[tok]) {
+          vSeen[tok] = 1;
+          docVocab.push(tok.charAt(0).toUpperCase() + tok.slice(1));
+        }
+      });
+    });
+    concepts.map(function (x) { return x.name; }).concat(kwTitles).concat(docVocab).forEach(function (cand) {
       var low = cand.toLowerCase();
       if (!seenD[low] && low.indexOf(ansLabel.toLowerCase()) === -1 && ansLabel.toLowerCase().indexOf(low) === -1 && out.length < 3) {
         seenD[low] = 1;
         out.push(cand);
       }
     });
-    ["Unrelated control variable", "Constant baseline factor", "External boundary noise"].forEach(function (fb) {
+    ["Equilibrium rate", "Reaction pathway", "Structural threshold"].forEach(function (fb) {
       if (out.length < 3 && !seenD[fb.toLowerCase()]) out.push(fb);
     });
     return out;
@@ -1074,8 +1210,8 @@ function ragAutoExtractUnits(topic) {
   var diagram = topic.diagram || { inputs: [], outputs: [], center: topic.title || "Topic", centerSub: "extracted knowledge" };
   if ((!diagram.inputs || !diagram.inputs.length) && concepts.length >= 2) {
     diagram = {
-      inputs: concepts.slice(0, 2).map(function (c) { return { label: c.name.slice(0, 18), color: "#F2B44B" }; }),
-      outputs: concepts.slice(2, 4).map(function (c) { return { label: c.name.slice(0, 18), color: "#7EA85B" }; }),
+      inputs: concepts.slice(0, 2).map(function (c) { return { label: c.name.slice(0, 18), color: "#19C2AE" }; }),
+      outputs: concepts.slice(2, 4).map(function (c) { return { label: c.name.slice(0, 18), color: "#2EE09A" }; }),
       center: (topic.title || "System").slice(0, 24),
       centerSub: (concepts.length + " concepts · " + chunks.length + " passages")
     };
@@ -1088,9 +1224,84 @@ function ragAutoExtractUnits(topic) {
     })
   };
 
-  var keywords = concepts.slice(0, 4).map(function (c) {
-    var firstWord = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return { re: new RegExp(firstWord || "concept", "i"), msg: c.name };
+  var keywords = concepts.slice(0, 5).map(function (c) {
+    var safePat = c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return { pattern: safePat, msg: c.name };
+  });
+
+  // 8. Full-cycle learning units (worked, guide, hint, hook, evidence, challenge, game, misconceptions)
+  var worked = (topic.worked && topic.worked.length) ? topic.worked : (
+    process.length
+      ? process.map(function (p) { return { t: p.t, d: p.d }; })
+      : concepts.slice(0, 4).map(function (c, idx) { return { t: "Step " + (idx + 1) + ": " + c.name, d: c.def }; })
+  );
+
+  var guide = (topic.guide && topic.guide.length) ? topic.guide : concepts.slice(0, 3).map(function (c) {
+    return {
+      q: "The term matching \"" + c.def.slice(0, 110) + (c.def.length > 110 ? "..." : "") + "\" is ______.",
+      a: c.name,
+      hint: "Starts with \"" + c.name.charAt(0) + "\" (" + c.name.length + " chars)."
+    };
+  });
+
+  var topConcept = concepts[0] || { name: topic.title || "Main idea", def: "Core principle from your source." };
+  var secondConcept = concepts[1] || topConcept;
+  var hint = (topic.hint && topic.hint.hints && topic.hint.hints.length) ? topic.hint : {
+    question: "How does " + topConcept.name + " contribute to " + (topic.title || "this system") + "?",
+    hints: [
+      "Recall the role of " + topConcept.name + ".",
+      topConcept.def.slice(0, 120),
+      "Connect " + topConcept.name + " with " + secondConcept.name + "."
+    ],
+    keywords: keywords.slice(0, 2),
+    answerHtml: topConcept.name + ": " + topConcept.def
+  };
+
+  var hook = (topic.hook && topic.hook.prompt && topic.hook.prompt.indexOf("What stands out") === -1) ? topic.hook : {
+    prompt: "Looking at " + (topic.title || "your source") + ": why is " + topConcept.name + " essential, and what would break if it changed?"
+  };
+
+  var evOptions = [topConcept.def.slice(0, 130)];
+  if (concepts[1]) evOptions.push("It is unrelated to " + concepts[1].name + " and acts independently.");
+  else evOptions.push("It remains constant regardless of surrounding conditions.");
+  evOptions.push("It only appears as measurement noise with no causal effect.");
+  var evidence = (topic.evidence && topic.evidence.options && topic.evidence.options.length > 2) ? topic.evidence : {
+    prompt: "Based on your indexed source for " + (topic.title || "this topic") + ", which statement best describes " + topConcept.name + "?",
+    options: evOptions,
+    answer: 0,
+    why: topConcept.name + ": " + topConcept.def
+  };
+
+  var challenge = (topic.challenge && topic.challenge.keywords && topic.challenge.keywords.length) ? topic.challenge : {
+    prompt: "Apply what you read in " + (topic.title || "the source") + ": explain how " + topConcept.name + " and " + secondConcept.name + " interact in a real scenario.",
+    keywords: keywords,
+    minCorrect: Math.min(2, Math.max(1, keywords.length)),
+    why: "Key connection: " + topConcept.name + " (" + topConcept.def.slice(0, 90) + ") relates to " + secondConcept.name + "."
+  };
+
+  var game = topic.game;
+  if (!game || !game.sliders || game.sliders.length < 2 || (game.sliders[0] && game.sliders[0].label === "Factor A")) {
+    var sliderLabels = concepts.slice(0, 3).map(function (c, i) {
+      return { id: "f" + i, label: c.name.slice(0, 16) };
+    });
+    if (sliderLabels.length < 2) {
+      sliderLabels = [{ id: "f0", label: "Input Level" }, { id: "f1", label: "System Rate" }];
+    }
+    game = {
+      title: (topic.title || "System") + " balance lab",
+      unit: "balance",
+      kind: "limiting",
+      target: 0,
+      goal: "Balance the key factors from " + (topic.title || "your source") + ". The lowest factor limits overall system output.",
+      sliders: sliderLabels
+    };
+  }
+
+  var misconceptions = (topic.misconceptions && topic.misconceptions.length) ? topic.misconceptions : concepts.slice(0, 2).map(function (c) {
+    return {
+      wrong: c.name + " operates completely independently of other factors.",
+      right: c.name + ": " + c.def
+    };
   });
 
   return {
@@ -1101,6 +1312,14 @@ function ragAutoExtractUnits(topic) {
     classification: Array.from(new Set(tags)).join(", "),
     diagram: diagram,
     story: story,
+    worked: worked,
+    guide: guide,
+    hint: hint,
+    hook: hook,
+    evidence: evidence,
+    challenge: challenge,
+    game: game,
+    misconceptions: misconceptions,
     explain: {
       prompt: "Explain the core ideas from " + (topic.title || "this topic") + " in your own words.",
       keywords: keywords,
