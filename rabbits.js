@@ -12,9 +12,9 @@
   var ASSET_SRC = "/public/assets/aistudio/image_3b954c6d.png";
   var MAX_RABBITS = 64;
   var DOUBLE_INTERVAL_MS = 10000;
-  var RABBIT_HEIGHT = 40;
-  var MIN_SEPARATION = 42;
-  var HIT_RADIUS = 24;
+  var RABBIT_HEIGHT = 24;
+  var MIN_SEPARATION = 26;
+  var HIT_RADIUS = 20;
 
   var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -79,7 +79,7 @@
     cctx.drawImage(rCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
 
     // Progressive 0.5x mipmap downsampling preserves warm caramel lineart & facial details
-    var targetH = Math.max(56, Math.round(RABBIT_HEIGHT * dpr * 2));
+    var targetH = Math.max(40, Math.round(RABBIT_HEIGHT * dpr * 2));
     var cur = cropped;
     while (cur.height * 0.5 >= targetH) {
       var nextW = Math.max(1, Math.round(cur.width * 0.5));
@@ -186,26 +186,26 @@
   function createRabbit(fromCorner) {
     var c = cornerPosition(Math.floor(Math.random() * 4));
     var angle = Math.atan2(c.ty - c.y, c.tx - c.x) + (Math.random() - 0.5) * 0.85;
-    var speed = 42 + Math.random() * 26;
+    var speed = 85 + Math.random() * 45;
     var id = nextId++;
     return {
       id: id,
-      x: c.x + (Math.random() - 0.5) * 14,
-      y: c.y + (Math.random() - 0.5) * 14,
+      x: c.x + (Math.random() - 0.5) * 12,
+      y: c.y + (Math.random() - 0.5) * 12,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       facing: Math.cos(angle) >= 0 ? 1 : -1,
       hopPhase: 0.05 + Math.random() * 0.2,
-      hopDur: 0.36 + Math.random() * 0.16,
-      hopAmp: 8 + Math.random() * 6,
+      hopDur: 0.20 + Math.random() * 0.11,
+      hopAmp: 6 + Math.random() * 5,
       restTimer: 0,
       hopCount: 0,
       mood: "hop",
       isSleeping: false,
-      curiousTimer: 0.8,
+      curiousTimer: 0.6,
       wanderAngle: angle,
       orbitAngle: (id * 2.39996) % (Math.PI * 2),
-      orbitRadius: 28 + (id % 5) * 11,
+      orbitRadius: 20 + (id % 5) * 8,
       spawnScale: fromCorner ? 0.25 : 1,
       squash: 0
     };
@@ -295,12 +295,12 @@
 
   function step(dt, now) {
     var waitMs = mouse.active ? (now - mouse.settledAt) : 0;
-    var gatherStrength = waitMs > 650 ? Math.min(1, (waitMs - 650) / 2600) : 0;
+    var gatherStrength = waitMs > 350 ? Math.min(1, (waitMs - 350) / 1200) : 0;
 
     for (var i = 0; i < rabbits.length; i++) {
       var r = rabbits[i];
-      if (r.spawnScale < 1) r.spawnScale = Math.min(1, r.spawnScale + dt * 3.5);
-      if (r.squash > 0) r.squash = Math.max(0, r.squash - dt * 2.8);
+      if (r.spawnScale < 1) r.spawnScale = Math.min(1, r.spawnScale + dt * 5.5);
+      if (r.squash > 0) r.squash = Math.max(0, r.squash - dt * 4.5);
       if (r.curiousTimer > 0) r.curiousTimer = Math.max(0, r.curiousTimer - dt);
 
       if (reducedMotion) {
@@ -313,18 +313,18 @@
       var isResting = r.restTimer > 0 && r.hopPhase < 0;
 
       if (gatherStrength > 0.05) {
-        var tx = Math.max(20, Math.min(vw - 20, mouse.x + Math.cos(r.orbitAngle) * r.orbitRadius));
-        var ty = Math.max(76, Math.min(vh - 20, mouse.y + Math.sin(r.orbitAngle) * r.orbitRadius));
+        var tx = Math.max(16, Math.min(vw - 16, mouse.x + Math.cos(r.orbitAngle) * r.orbitRadius));
+        var ty = Math.max(72, Math.min(vh - 16, mouse.y + Math.sin(r.orbitAngle) * r.orbitRadius));
         var gx = tx - r.x;
         var gy = ty - r.y;
         var gd = Math.hypot(gx, gy);
 
-        if (gd > 15) {
-          var gatherSpeed = 24 + gatherStrength * 26;
+        if (gd > 12) {
+          var gatherSpeed = 68 + gatherStrength * 74;
           desiredVx = (gx / gd) * gatherSpeed;
           desiredVy = (gy / gd) * gatherSpeed;
           r.isSleeping = false;
-          if (r.restTimer > 0.25) r.restTimer = 0.25;
+          if (r.restTimer > 0.12) r.restTimer = 0.12;
         } else {
           nearMouse = true;
           r.facing = mouse.x >= r.x ? 1 : -1;
@@ -338,8 +338,8 @@
         r.mood = "hop";
         r.hopPhase += dt / r.hopDur;
         if (gatherStrength > 0.1) {
-          r.vx += (desiredVx - r.vx) * Math.min(1, dt * 2.4 * gatherStrength);
-          r.vy += (desiredVy - r.vy) * Math.min(1, dt * 2.4 * gatherStrength);
+          r.vx += (desiredVx - r.vx) * Math.min(1, dt * 5.2 * gatherStrength);
+          r.vy += (desiredVy - r.vy) * Math.min(1, dt * 5.2 * gatherStrength);
         }
         r.x += r.vx * dt;
         r.y += r.vy * dt;
@@ -348,27 +348,27 @@
         if (r.hopPhase >= 1) {
           r.hopPhase = -1;
           r.hopCount++;
-          r.squash = 0.24;
-          r.vx *= 0.2;
-          r.vy *= 0.2;
+          r.squash = 0.26;
+          r.vx *= 0.25;
+          r.vy *= 0.25;
 
           if (nearMouse && gatherStrength > 0.45) {
-            if (Math.random() < 0.55) {
+            if (Math.random() < 0.5) {
               r.isSleeping = true;
-              r.restTimer = 2.4 + Math.random() * 2.4;
+              r.restTimer = 1.2 + Math.random() * 1.4;
             } else {
-              r.curiousTimer = 1.2 + Math.random() * 0.9;
-              r.restTimer = 1.2 + Math.random() * 1.1;
+              r.curiousTimer = 0.7 + Math.random() * 0.5;
+              r.restTimer = 0.65 + Math.random() * 0.6;
             }
-          } else if (r.hopCount % 5 === 0 || Math.random() < 0.18) {
+          } else if (r.hopCount % 8 === 0 || Math.random() < 0.1) {
             r.isSleeping = true;
-            r.restTimer = 1.9 + Math.random() * 1.8;
-          } else if (Math.random() < 0.35) {
-            r.curiousTimer = 0.7 + Math.random() * 0.6;
-            r.restTimer = 0.65 + Math.random() * 0.7;
+            r.restTimer = 0.9 + Math.random() * 1.1;
+          } else if (Math.random() < 0.3) {
+            r.curiousTimer = 0.35 + Math.random() * 0.35;
+            r.restTimer = 0.25 + Math.random() * 0.35;
           } else {
             r.isSleeping = false;
-            r.restTimer = 0.35 + Math.random() * 0.75;
+            r.restTimer = 0.08 + Math.random() * 0.26;
           }
         }
       } else {
@@ -385,17 +385,17 @@
           r.isSleeping = false;
           r.hopPhase = 0;
           r.mood = "hop";
-          r.hopDur = 0.34 + Math.random() * 0.18;
-          r.hopAmp = 7 + Math.random() * 6;
+          r.hopDur = 0.19 + Math.random() * 0.11;
+          r.hopAmp = 6 + Math.random() * 5;
           if (gatherStrength > 0.15 && Math.hypot(desiredVx, desiredVy) > 4) {
-            var jitter = (Math.random() - 0.5) * 0.55;
+            var jitter = (Math.random() - 0.5) * 0.45;
             var baseA = Math.atan2(desiredVy, desiredVx) + jitter;
-            var sp = 28 + Math.random() * 24;
+            var sp = 68 + Math.random() * 54;
             r.vx = Math.cos(baseA) * sp;
             r.vy = Math.sin(baseA) * sp;
           } else {
-            r.wanderAngle += (Math.random() - 0.5) * 2.2;
-            var wsp = 28 + Math.random() * 32;
+            r.wanderAngle += (Math.random() - 0.5) * 2.0;
+            var wsp = 72 + Math.random() * 64;
             r.vx = Math.cos(r.wanderAngle) * wsp;
             r.vy = Math.sin(r.wanderAngle) * wsp;
           }
@@ -420,10 +420,10 @@
           a.y -= ny * overlap;
           b.x += nx * overlap;
           b.y += ny * overlap;
-          a.vx -= nx * 24 * dt;
-          a.vy -= ny * 24 * dt;
-          b.vx += nx * 24 * dt;
-          b.vy += ny * 24 * dt;
+          a.vx -= nx * 48 * dt;
+          a.vy -= ny * 48 * dt;
+          b.vx += nx * 48 * dt;
+          b.vy += ny * 48 * dt;
         }
       }
     }
@@ -462,7 +462,7 @@
       ctx.globalAlpha = 0.34 * shScale;
       ctx.fillStyle = "#061009";
       ctx.beginPath();
-      ctx.ellipse(r.x, r.y + RABBIT_HEIGHT * 0.44, 12 * shScale, 3.8 * shScale, 0, 0, Math.PI * 2);
+      ctx.ellipse(r.x, r.y + RABBIT_HEIGHT * 0.44, 7.5 * shScale, 2.5 * shScale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
