@@ -223,10 +223,10 @@ function renderUpload() {
   if (zone && !zone._wired) {
     zone._wired = true;
     zone.addEventListener("click", function () { input.click(); });
-    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.style.borderColor = "var(--accent)"; });
-    zone.addEventListener("dragleave", function () { zone.style.borderColor = ""; });
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.style.background = "var(--tint-mint)"; });
+    zone.addEventListener("dragleave", function () { zone.style.background = ""; });
     zone.addEventListener("drop", function (e) {
-      e.preventDefault(); zone.style.borderColor = "";
+      e.preventDefault(); zone.style.background = "";
       if (e.dataTransfer.files && e.dataTransfer.files.length) handleMultiFiles(e.dataTransfer.files);
     });
     input.addEventListener("change", function () {
@@ -390,7 +390,7 @@ function renderUpload() {
         if (statusEl) statusEl.textContent = "Saved artwork to " + tp.title + " (" + (res.model || "NIM") + ").";
         if (previewEl) {
           previewEl.classList.remove("hidden");
-          previewEl.innerHTML = '<img src="' + esc(res.url) + '" alt="' + esc(prompt) + '" referrerpolicy="no-referrer" style="width:100%;max-height:240px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border)" />';
+          previewEl.innerHTML = '<img src="' + esc(res.url) + '" alt="' + esc(prompt) + '" referrerpolicy="no-referrer" style="width:100%;max-height:240px;object-fit:cover;border-radius:0;border:none" />';
         }
         toast("Generated and attached topic artwork!");
       });
@@ -525,16 +525,16 @@ function renderRagWorkspace() {
                 x2 = (Number(b.xmax) || 0) / Math.max(1, d.width || 1);
                 y2 = (Number(b.ymax) || 0) / Math.max(1, d.height || 1);
               }
-              boxesSvg += '<rect x="' + x.toFixed(4) + '" y="' + y.toFixed(4) + '" width="' + Math.max(0.02, x2 - x).toFixed(4) + '" height="' + Math.max(0.02, y2 - y).toFixed(4) + '" fill="rgba(228,168,92,0.12)" stroke="#E4A85C" stroke-width="0.012" />';
+              boxesSvg += '<rect x="' + x.toFixed(4) + '" y="' + y.toFixed(4) + '" width="' + Math.max(0.02, x2 - x).toFixed(4) + '" height="' + Math.max(0.02, y2 - y).toFixed(4) + '" fill="rgba(232, 197, 71, 0.24)" stroke="none" />';
             });
             boxesSvg += "</svg>";
           }
-          html += '<div style="position:relative;border-radius:8px;overflow:hidden"><img class="rag-thumb" src="' + esc(d.thumb) + '" alt="' + esc(d.name) + '" referrerpolicy="no-referrer" />' + boxesSvg + '</div>';
+          html += '<div style="position:relative;border-radius:0;overflow:hidden"><img class="rag-thumb" src="' + esc(d.thumb) + '" alt="' + esc(d.name) + '" referrerpolicy="no-referrer" />' + boxesSvg + '</div>';
         }
         html += '<div><strong>' + esc(d.name) + '</strong><div class="small muted">' + esc(meta) + '</div></div>';
         if (d.type === "image") {
           var swatches = (d.dominantColors || []).map(function (c) {
-            return '<span style="display:inline-block;width:14px;height:14px;border-radius:4px;border:1.5px solid var(--border);background:' + esc(c) + ';vertical-align:middle;margin-right:4px" title="' + esc(c) + '"></span>';
+            return '<span style="display:inline-block;width:14px;height:14px;border-radius:0;border:none;background:' + esc(c) + ';vertical-align:middle;margin-right:4px" title="' + esc(c) + '"></span>';
           }).join("");
           html += '<div class="small muted">Palette: ' + swatches + ' · ' + esc(d.ocrNote || "") + '</div>';
           if (d.detections && d.detections.length) {
@@ -731,7 +731,7 @@ function renderRagWorkspace() {
         '<div><h3 style="margin:0">Generated Quiz (' + topicQuiz.length + ' questions ready)</h3>' +
         '<div class="small muted">Evidence-validated questions with page references built from your indexed sources.</div></div>' +
         '<button class="btn secondary sm" id="ragEditQuizBtn">Edit questions</button>' +
-        '</div><div id="ragQuizHost" style="background:var(--surface-2);border:2px solid var(--border);border-radius:var(--radius-sm);padding:16px"></div>';
+        '</div><div id="ragQuizHost" style="background:var(--surface-2);border:none;border-radius:0;padding:16px"></div>';
       var qHost = $("ragQuizHost");
       if (qHost) qHost.appendChild(makeQuiz(topicQuiz, { complete: function (pct, passed) { bumpMastery(passed ? 14 : 6); } }));
       if ($("ragEditQuizBtn")) {
@@ -1109,7 +1109,7 @@ function drawGraphEditor() {
     var xLab = $("edXLabel") ? $("edXLabel").value : "";
     var yLab = $("edYLabel") ? $("edYLabel").value : "";
     var lbls = ($("edGraphLabels") ? $("edGraphLabels").value : "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-    var palette = ["#558E9B", "#7EA85B", "#F2B44B"];
+    var palette = ["#D9E6A5", "#829A75", "#A9C8D5", "#5B9F97", "#536F9D", "#E8C547", "#E88F9B", "#D8876D", "#B88AAE", "#E6D4BC"];
     var lines = ($("edGraphSeries") ? $("edGraphSeries").value : "").split(/\r?\n/).filter(function (l) { return l.indexOf(":") > -1; });
     var series = lines.map(function (ln, idx) {
       var parts = ln.split(":");
@@ -1340,14 +1340,16 @@ function init() {
       mermaid.initialize({
         startOnLoad: false,
         theme: "base",
+        flowchart: { curve: "linear" },
+        themeCSS: ".node rect, .node polygon, .node circle, .node ellipse { stroke: none !important; rx: 0 !important; ry: 0 !important; } .edgePath path { stroke-dasharray: none !important; }",
         themeVariables: {
-          background: "#1C3123",
-          primaryColor: "#233C2B",
-          primaryTextColor: "#E6EDE2",
-          primaryBorderColor: "#6DA85B",
-          lineColor: "#E8BE5E",
-          secondaryColor: "#1D3A27",
-          tertiaryColor: "#2C3321"
+          background: "#222C3B",
+          primaryColor: "#293748",
+          primaryTextColor: "#F2EBDD",
+          primaryBorderColor: "#293748",
+          lineColor: "#E88F9B",
+          secondaryColor: "#203849",
+          tertiaryColor: "#3D3030"
         }
       });
     } catch (e) {}

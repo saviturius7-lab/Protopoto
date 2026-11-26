@@ -567,7 +567,7 @@ function parseSpreadsheetWorkbook(wb, sourceName) {
         return (lbl !== "" && lbl != null) ? String(lbl).slice(0, 18) : ("Row " + (idx + 1));
       });
       var numericCols = colStats.filter(function (cs) { return cs.colIdx !== labelColIdx || colStats.length === 1; }).slice(0, 3);
-      var palette = ["#558E9B", "#7EA85B", "#F2B44B"];
+      var palette = ["#D9E6A5", "#829A75", "#A9C8D5", "#5B9F97", "#536F9D", "#E8C547", "#E88F9B", "#D8876D", "#B88AAE", "#E6D4BC"];
       var series = numericCols.map(function (cs, sIdx) {
         return {
           name: cs.label,
@@ -876,7 +876,7 @@ function parseJsonStatsObject(obj, sourceName) {
       }
     });
     if (numKeys.length) {
-      var palette = ["#558E9B", "#7EA85B", "#F2B44B"];
+      var palette = ["#D9E6A5", "#829A75", "#A9C8D5", "#5B9F97", "#536F9D", "#E8C547", "#E88F9B", "#D8876D", "#B88AAE", "#E6D4BC"];
       var sampled = obj.slice(0, 24);
       graph = {
         labels: sampled.map(function (r, idx) { return String(r[labelKey] || ("Item " + (idx + 1))).slice(0, 18); }),
@@ -1210,8 +1210,8 @@ function ragAutoExtractUnits(topic) {
   var diagram = topic.diagram || { inputs: [], outputs: [], center: topic.title || "Topic", centerSub: "extracted knowledge" };
   if ((!diagram.inputs || !diagram.inputs.length) && concepts.length >= 2) {
     diagram = {
-      inputs: concepts.slice(0, 2).map(function (c) { return { label: c.name.slice(0, 18), color: "#19C2AE" }; }),
-      outputs: concepts.slice(2, 4).map(function (c) { return { label: c.name.slice(0, 18), color: "#2EE09A" }; }),
+      inputs: concepts.slice(0, 2).map(function (c) { return { label: c.name.slice(0, 18), color: "#D9E6A5" }; }),
+      outputs: concepts.slice(2, 4).map(function (c) { return { label: c.name.slice(0, 18), color: "#E88F9B" }; }),
       center: (topic.title || "System").slice(0, 24),
       centerSub: (concepts.length + " concepts · " + chunks.length + " passages")
     };

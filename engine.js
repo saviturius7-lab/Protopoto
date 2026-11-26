@@ -210,29 +210,14 @@ function srsDueCount(topic) {
   return n;
 }
 
-/* screens + kinetic transitions + asset scenery backdrop */
+/* screens + kinetic transitions + single botanical backdrop */
 var SCREEN_NAMES = ["home", "library", "quest", "cycle", "dashboard", "upload", "editor", "review"];
-var SCREEN_SCENERY = {
-  home: "/public/assets/aistudio/image_9f1ca12d.png",
-  library: "/public/assets/aistudio/image_76fad887.png",
-  quest: "/public/assets/aistudio/image_052f24b8.png",
-  cycle: "/public/assets/aistudio/image_9f1ca12d.png",
-  upload: "/public/assets/aistudio/image_76fad887.png",
-  editor: "/public/assets/aistudio/image_052f24b8.png",
-  review: "/public/assets/aistudio/image_9f1ca12d.png",
-  dashboard: "/public/assets/aistudio/image_052f24b8.png"
-};
-var ASSET_THUMB_FALLBACKS = [
-  "/public/assets/aistudio/image_76fad887.png",
-  "/public/assets/aistudio/image_052f24b8.png",
-  "/public/assets/aistudio/image_9f1ca12d.png"
-];
+var BACKDROP_IMAGE = "/public/assets/aistudio/image_56230c1a.png";
 
-function updateScreenScenery(name) {
+function updateScreenScenery() {
   var bg = $("sceneryBg");
   if (!bg) return;
-  var src = SCREEN_SCENERY[name] || SCREEN_SCENERY.home;
-  bg.style.backgroundImage = 'url("' + src + '")';
+  bg.style.backgroundImage = 'url("' + BACKDROP_IMAGE + '")';
 }
 
 function triggerTopbarSweep() {
@@ -267,6 +252,7 @@ function showScreen(name) {
     navBtns[i].classList.toggle("active", ds === (name === "cycle" ? "quest" : name));
   }
   updateScreenScenery(name);
+  if (name === "home") renderHome();
   if (name === "quest") renderQuest();
   if (name === "dashboard") renderDashboard();
   if (name === "library") renderLibrary();
@@ -287,78 +273,8 @@ function showScreen(name) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function topicSceneSvg(artKey) {
-  var svgOpen = '<svg viewBox="0 0 320 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">';
-  if (artKey === "photosynthesis") {
-    return svgOpen +
-      '<rect width="320" height="240" fill="#0B2E2D"/>' +
-      '<ellipse cx="236" cy="58" rx="68" ry="52" fill="#19C2AE" opacity=".28"/>' +
-      '<circle cx="236" cy="58" r="32" fill="#3CE8D2"/>' +
-      '<path d="M0 154 Q80 120 170 144 T320 132 L320 240 L0 240 Z" fill="#124A40" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M0 176 Q110 148 210 178 T320 165 L320 240 L0 240 Z" fill="#0E3B33" stroke="#041414" stroke-width="2.5"/>' +
-      '<ellipse cx="185" cy="212" rx="110" ry="26" fill="#156360" stroke="#041414" stroke-width="2.5"/>' +
-      '<ellipse cx="152" cy="210" rx="18" ry="6" fill="#198F73" stroke="#041414" stroke-width="2"/>' +
-      '<ellipse cx="212" cy="215" rx="14" ry="5" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
-      '<rect x="58" y="96" width="18" height="88" rx="4" fill="#18423F" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M67 28 L108 122 L26 122 Z" fill="#0D594B" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M67 54 L116 146 L18 146 Z" fill="#157A67" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M236 96 L210 145 M236 96 L248 152 M236 96 L276 138" stroke="#3CE8D2" stroke-width="3" stroke-linecap="round" opacity=".75"/>' +
-      '</svg>';
-  }
-  if (artKey === "newton2") {
-    return svgOpen +
-      '<rect width="320" height="240" fill="#0A2B2B"/>' +
-      '<path d="M32 138 L94 42 L152 138 Z" fill="#134545" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M94 42 L116 78 L98 72 L86 84 L74 72 Z" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
-      '<path d="M168 140 L236 52 L298 140 Z" fill="#0F3B3B" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M236 52 L256 80 L238 75 L224 84 L216 74 Z" fill="#2DDAC2" stroke="#041414" stroke-width="2"/>' +
-      '<path d="M0 132 Q84 108 168 136 T320 124 L320 240 L0 240 Z" fill="#135247" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M0 162 Q100 132 196 172 T320 154 L320 240 L0 240 Z" fill="#0E3D36" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M18 240 Q120 184 260 202 L320 212 L320 240 Z" fill="#092423" stroke="#041414" stroke-width="2.5"/>' +
-      '<rect x="138" y="156" width="52" height="28" rx="6" fill="#19C2AE" stroke="#041414" stroke-width="2.5"/>' +
-      '<circle cx="150" cy="188" r="9" fill="#0E3433" stroke="#041414" stroke-width="2.5"/>' +
-      '<circle cx="178" cy="188" r="9" fill="#0E3433" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M94 170 L128 170 M120 163 L129 170 L120 177" stroke="#3CE8D2" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '</svg>';
-  }
-  if (artKey === "supply-demand") {
-    return svgOpen +
-      '<rect width="320" height="240" fill="#0B302E"/>' +
-      '<path d="M28 54 Q66 36 106 54 Q130 58 120 70 L20 70 Q12 58 28 54 Z" fill="#165753" stroke="#041414" stroke-width="2"/>' +
-      '<path d="M196 42 Q232 24 268 42 Q286 48 276 58 L190 58 Q182 48 196 42 Z" fill="#165753" stroke="#041414" stroke-width="2"/>' +
-      '<path d="M0 144 L76 74 L144 136 L220 68 L320 146 L320 240 L0 240 Z" fill="#103B39" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M0 166 Q90 132 174 166 T320 156 L320 240 L0 240 Z" fill="#14504D" stroke="#041414" stroke-width="2.5"/>' +
-      '<path d="M0 192 Q115 168 220 198 T320 184 L320 240 L0 240 Z" fill="#0D4035" stroke="#041414" stroke-width="2.5"/>' +
-      '<line x1="160" y1="108" x2="160" y2="184" stroke="#3CE8D2" stroke-width="3.5"/>' +
-      '<line x1="108" y1="120" x2="212" y2="120" stroke="#3CE8D2" stroke-width="3.5" stroke-linecap="round"/>' +
-      '<path d="M94 148 Q108 164 122 148 Z" fill="#19C2AE" stroke="#041414" stroke-width="2"/>' +
-      '<path d="M198 148 Q212 164 226 148 Z" fill="#2EE09A" stroke="#041414" stroke-width="2"/>' +
-      '<line x1="108" y1="120" x2="96" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
-      '<line x1="108" y1="120" x2="120" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
-      '<line x1="212" y1="120" x2="200" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
-      '<line x1="212" y1="120" x2="224" y2="148" stroke="#3CE8D2" stroke-width="1.8"/>' +
-      '</svg>';
-  }
-  return svgOpen +
-    '<rect width="320" height="240" fill="#0A2B2A"/>' +
-    '<circle cx="160" cy="70" r="44" fill="#19C2AE" opacity=".32" stroke="#3CE8D2" stroke-width="2"/>' +
-    '<path d="M0 156 Q80 120 160 148 T320 136 L320 240 L0 240 Z" fill="#124A40" stroke="#041414" stroke-width="2.5"/>' +
-    '<path d="M0 182 Q110 154 220 186 T320 172 L320 240 L0 240 Z" fill="#0D3830" stroke="#041414" stroke-width="2.5"/>' +
-    '<path d="M68 78 L98 158 L38 158 Z" fill="#0E594A" stroke="#041414" stroke-width="2.5"/>' +
-    '<path d="M252 68 L286 156 L218 156 Z" fill="#157562" stroke="#041414" stroke-width="2.5"/>' +
-    '<path d="M126 240 Q152 184 194 166" stroke="#185C57" stroke-width="18" fill="none" stroke-linecap="round"/>' +
-    '</svg>';
-}
-
-function topicThumbHtml(t) {
-  var imgSrc = t.image;
-  if (!imgSrc) {
-    var sum = 0;
-    var idStr = String(t.id || "topic");
-    for (var i = 0; i < idStr.length; i++) sum += idStr.charCodeAt(i);
-    imgSrc = ASSET_THUMB_FALLBACKS[sum % ASSET_THUMB_FALLBACKS.length];
-  }
-  return '<div class="topic-thumb"><img src="' + esc(imgSrc) + '" alt="' + esc(t.title) + '" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'<div class=art-fallback>' + esc(t.title) + '</div>\'" /></div>';
+function topicThumbHtml() {
+  return "";
 }
 
 function renderHome() {
@@ -383,20 +299,26 @@ function renderHome() {
     }
   }
 
+  var activeTopicEl = $("homeActiveTopic");
+  if (activeTopicEl && T) activeTopicEl.textContent = T.title || "Selected topic";
+
   var picker = $("homeTopicPicker");
-  picker.innerHTML = "";
-  var wrap = el("div", "topic-grid");
-  allTopics().forEach(function (t) {
-    var on = state.activeTopicId === t.id;
-    var c = el("div", "topic-card" + (on ? " on" : ""));
-    c.innerHTML = topicThumbHtml(t) +
-      '<div class="topic-body"><div class="tt">' + esc(t.title) + '</div><div class="ts">' + esc((t.summary || "").slice(0, 90)) + (t.summary && t.summary.length > 90 ? "..." : "") + '</div><div class="tm">' + (on ? "✓ Selected" : "Select topic") + "</div></div>";
-    c.addEventListener("click", function () { setTopic(t.id); renderHome(); toast("Topic: " + t.title); });
-    wrap.appendChild(c);
-  });
-  picker.appendChild(wrap);
+  if (picker) {
+    picker.innerHTML = "";
+    var wrap = el("div", "topic-grid");
+    allTopics().forEach(function (t) {
+      var on = state.activeTopicId === t.id;
+      var c = el("div", "topic-card" + (on ? " on" : ""));
+      c.innerHTML = topicThumbHtml(t) +
+        '<div class="topic-body"><div class="tt">' + esc(t.title) + '</div><div class="ts">' + esc((t.summary || "").slice(0, 90)) + (t.summary && t.summary.length > 90 ? "..." : "") + '</div><div class="tm">' + (on ? "✓ Selected" : "Select topic") + "</div></div>";
+      c.addEventListener("click", function () { setTopic(t.id); renderHome(); toast("Topic: " + t.title); });
+      wrap.appendChild(c);
+    });
+    picker.appendChild(wrap);
+  }
 
   var grid = $("archGrid");
+  if (!grid) return;
   grid.innerHTML = "";
   var recKey = state.assessmentProfile && state.assessmentProfile.primary_key;
   Object.keys(ARCHETYPES).forEach(function (key) {
@@ -442,7 +364,7 @@ function renderLibrary() {
       masteryPct = vals.length ? Math.round(vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) : 0;
     }
     var c = el("div", "topic-card" + (on ? " on" : ""));
-    c.innerHTML = topicThumbHtml(t) +
+    c.innerHTML =
       '<div class="topic-body"><div class="tt">' + esc(t.title) + '</div>' +
       '<div class="ts">' + esc((t.summary || "").slice(0, 110)) + '</div>' +
       '<div class="tm">' + (t.id.indexOf("custom") === 0 ? "Custom topic" : "Sample") + " · " + (t.concepts ? t.concepts.length : 0) + " concepts · mastery " + masteryPct + "%</div></div>";
@@ -675,23 +597,23 @@ function renderDashboard() {
 function drawEngagement(done, total) {
   var c = $("engagementChart"); if (!c || !window.Chart) return;
   try { if (charts.eng) charts.eng.destroy(); charts.eng = new Chart(c, {
-    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#6DA85B", "#1C3123"], borderColor: "#3A5D44", borderWidth: 1.5 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } } } }); } catch (e) {}
+    type: "doughnut", data: { labels: ["Completed", "Remaining"], datasets: [{ data: [done, Math.max(0, total - done)], backgroundColor: ["#D9E6A5", "#222C3B"], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "66%", plugins: { legend: { labels: { color: "#F2EBDD", font: { weight: "600" } } } } } }); } catch (e) {}
 }
 function drawImmediate(imm) {
   var c = $("immediateChart"); if (!c || !window.Chart) return;
   try { if (charts.imm) charts.imm.destroy(); charts.imm = new Chart(c, {
-    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#6DA85B", borderColor: "#3A5D44", borderWidth: 1.5 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } } }); } catch (e) {}
+    type: "bar", data: { labels: ["Recall"], datasets: [{ label: "Accuracy %", data: [imm], backgroundColor: "#D9E6A5", borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#F2EBDD" }, grid: { color: "rgba(182, 181, 176, 0.16)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#F2EBDD" }, grid: { color: "rgba(182, 181, 176, 0.16)" } } } } }); } catch (e) {}
 }
 function drawRetention(imm, ret, transfer) {
   var c = $("retentionChart"); if (!c || !window.Chart) return;
   try { if (charts.ret) charts.ret.destroy(); charts.ret = new Chart(c, {
     type: "bar",
     data: { labels: ["Immediate", "Delayed retention", "Transfer"], datasets: [
-      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#E8BE5E", borderColor: "#3A5D44", borderWidth: 1.5 },
-      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#6DA85B", borderColor: "#3A5D44", borderWidth: 1.5 } ] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } } }); } catch (e) {}
+      { label: "Standard sequence (projected)", data: [imm, Math.round(imm * 0.7), Math.round(imm * 0.5)], backgroundColor: "#536F9D", borderWidth: 0 },
+      { label: "This journey (projected)", data: [imm, ret, transfer], backgroundColor: "#83C69A", borderWidth: 0 } ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#F2EBDD", font: { weight: "600" } } } }, scales: { x: { ticks: { color: "#F2EBDD" }, grid: { color: "rgba(182, 181, 176, 0.16)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#F2EBDD" }, grid: { color: "rgba(182, 181, 176, 0.16)" } } } } }); } catch (e) {}
 }
 
 /* quiz engine */
@@ -721,7 +643,7 @@ function makeQuiz(questions, handlers) {
         if (handlers.record) handlers.record(i === q.a);
         var evidenceHtml = "";
         if (q.pageRef || q.evidence) {
-          evidenceHtml = '<div class="small" style="margin-top:8px;padding-top:8px;border-top:1.5px solid var(--hairline)">' +
+          evidenceHtml = '<div class="small" style="margin-top:8px;padding-top:4px">' +
             (q.pageRef ? ('<strong>Page Reference:</strong> ' + esc(q.pageRef) + '<br>') : "") +
             (q.evidence ? ('<strong>Evidence:</strong> "' + esc(q.evidence) + '"') : "") +
             "</div>";

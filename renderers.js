@@ -9,7 +9,7 @@ RENDERERS.summary = function () {
   var grid = el("div", "grid two"); grid.style.marginTop = "14px";
   (T.concepts || []).slice(0, 6).forEach(function (c) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:13px 15px";
+    d.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:13px 15px";
     d.innerHTML = "<strong>" + esc(c.name) + '</strong><div class="small muted">' + esc(c.def) + "</div>";
     grid.appendChild(d);
   });
@@ -69,21 +69,21 @@ function buildDiagram() {
   var dg = T.diagram || { inputs: [], outputs: [], center: "Process", centerSub: "" };
   var W = 640, H = 300, cx = 320, cy = 150;
   var inp = dg.inputs || [], outp = dg.outputs || [];
-  var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit" style="background:var(--surface-2);border:2px solid var(--border);border-radius:12px">';
-  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#6DA85B"/></marker>' +
-    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#E8BE5E"/></marker></defs>';
-  svg += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="122" ry="80" fill="#233C2B" stroke="#6DA85B" stroke-width="2.5"/>';
-  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#E6EDE2" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
-  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#ADC2AD" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
+  var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" font-family="inherit" style="background:var(--surface-2);border:none;border-radius:0">';
+  svg += '<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#D9E6A5"/></marker>' +
+    '<marker id="ar2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#E88F9B"/></marker></defs>';
+  svg += '<rect x="' + (cx - 122) + '" y="' + (cy - 76) + '" width="244" height="152" fill="#293748" stroke="none"/>';
+  svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" fill="#F2EBDD" font-size="16" font-weight="700">' + esc(dg.center || "") + "</text>";
+  if (dg.centerSub) svg += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" fill="#B6B5B0" font-size="11.5" font-weight="600">' + esc(dg.centerSub) + "</text>";
   inp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, inp.length));
-    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#6DA85B" stroke-width="2.5" marker-end="url(#ar)"/>';
-    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#E6EDE2" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="95" y1="' + y + '" x2="' + (cx - 122) + '" y2="' + y + '" stroke="#D9E6A5" stroke-width="2.5" marker-end="url(#ar)"/>';
+    svg += '<text x="86" y="' + (y + 4) + '" text-anchor="end" fill="#F2EBDD" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   outp.forEach(function (it, i) {
     var y = cy - 50 + i * (100 / Math.max(1, outp.length));
-    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#E8BE5E" stroke-width="2.5" marker-end="url(#ar2)"/>';
-    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#E6EDE2" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
+    svg += '<line x1="' + (cx + 122) + '" y1="' + y + '" x2="' + (W - 95) + '" y2="' + y + '" stroke="#E88F9B" stroke-width="2.5" marker-end="url(#ar2)"/>';
+    svg += '<text x="' + (W - 86) + '" y="' + (y + 4) + '" fill="#F2EBDD" font-size="13" font-weight="700">' + esc(it.label) + "</text>";
   });
   svg += "</svg>";
   box.innerHTML = svg;
@@ -99,14 +99,16 @@ function initMermaidOoo() {
   mermaid.initialize({
     startOnLoad: false,
     theme: "base",
+    flowchart: { curve: "linear" },
+    themeCSS: ".node rect, .node polygon, .node circle, .node ellipse { stroke: none !important; rx: 0 !important; ry: 0 !important; } .edgePath path { stroke-dasharray: none !important; }",
     themeVariables: {
-      background: "#1C3123",
-      primaryColor: "#233C2B",
-      primaryTextColor: "#E6EDE2",
-      primaryBorderColor: "#6DA85B",
-      lineColor: "#E8BE5E",
-      secondaryColor: "#1D3A27",
-      tertiaryColor: "#2C3321",
+      background: "#222C3B",
+      primaryColor: "#293748",
+      primaryTextColor: "#F2EBDD",
+      primaryBorderColor: "#293748",
+      lineColor: "#E88F9B",
+      secondaryColor: "#203849",
+      tertiaryColor: "#3D3030",
       fontFamily: "Plus Jakarta Sans, sans-serif"
     }
   });
@@ -120,7 +122,7 @@ function buildProcess() {
     return box;
   }
   var md = el("div"); md.className = "mermaid";
-  md.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px;overflow:auto";
+  md.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px;overflow:auto";
   var lines = ["flowchart LR"];
   steps.forEach(function (s, i) {
     var label = (s.t || ("Step " + (i + 1))).replace(/["[\]()]/g, "");
@@ -148,7 +150,7 @@ function buildStory() {
     return box;
   }
   var md = el("div"); md.className = "mermaid";
-  md.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px;overflow:auto";
+  md.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px;overflow:auto";
   var lines = ["timeline"];
   scenes.forEach(function (s) {
     var tClean = String(s.t || "").replace(/:/g, " -");
@@ -160,7 +162,7 @@ function buildStory() {
   var list = el("div", "grid two"); list.style.marginTop = "16px";
   scenes.forEach(function (s, i) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 14px";
+    d.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px 14px";
     d.innerHTML = '<div class="status-text now" style="margin-bottom:4px">Scene ' + (i + 1) + "</div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div>";
     list.appendChild(d);
   });
@@ -182,16 +184,16 @@ function buildGraph() {
   setTimeout(function () {
     try {
       if (!window.Chart) { canvas.outerHTML = '<p class="small muted">Chart library unavailable offline.</p>'; return; }
-      var palette = ["#6DA85B", "#E8BE5E", "#5B9F97"];
+      var palette = ["#D9E6A5", "#829A75", "#A9C8D5", "#5B9F97", "#536F9D", "#E8C547", "#E88F9B", "#D8876D", "#B88AAE", "#E6D4BC"];
       new Chart(canvas, {
         type: "line",
         data: { labels: g.labels, datasets: (g.series || []).map(function (s, idx) {
           var col = palette[idx % palette.length];
-          return { label: s.name, data: s.data, borderColor: col, backgroundColor: "transparent", borderDash: s.dashed ? [6, 4] : [], borderWidth: 3, tension: 0.35, pointRadius: 4, pointBackgroundColor: col };
+          return { label: s.name, data: s.data, borderColor: col, backgroundColor: "transparent", borderDash: [], borderWidth: 3, tension: 0, pointStyle: "rect", pointRadius: 4, pointBorderWidth: 0, pointBackgroundColor: col };
         }) },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#E6EDE2", font: { weight: "600" } } } },
-          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#E6EDE2", font: { weight: "700" } }, ticks: { color: "#ADC2AD" }, grid: { color: "rgba(173,194,173,.14)" } },
-            y: { title: { display: true, text: g.ylabel || "", color: "#E6EDE2", font: { weight: "700" } }, ticks: { color: "#ADC2AD" }, grid: { color: "rgba(173,194,173,.14)" } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#F2EBDD", font: { weight: "600" } } } },
+          scales: { x: { title: { display: true, text: g.xlabel || "", color: "#F2EBDD", font: { weight: "700" } }, ticks: { color: "#B6B5B0" }, grid: { color: "rgba(182, 181, 176, 0.16)" } },
+            y: { title: { display: true, text: g.ylabel || "", color: "#F2EBDD", font: { weight: "700" } }, ticks: { color: "#B6B5B0" }, grid: { color: "rgba(182, 181, 176, 0.16)" } } } }
       });
     } catch (e) {}
   }, 30);
@@ -216,8 +218,8 @@ RENDERERS.conceptmap = function () {
     var concepts = T.concepts || [], rels = T.relationships || [];
     if (window.vis && vis.Network) {
       try {
-        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", borderWidth: 2, color: { background: "#233C2B", border: "#6DA85B", highlight: { background: "#6DA85B", border: "#E6EDE2" } }, font: { color: "#E6EDE2", face: "Plus Jakarta Sans", bold: true } }; }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", color: { color: "#E8BE5E" }, font: { color: "#ADC2AD", size: 11, background: "#1C3123" }, width: 2 }; }));
+        var nodes = new vis.DataSet(concepts.map(function (c) { return { id: c.id, label: c.name, shape: "box", shapeProperties: { borderRadius: 0 }, borderWidth: 0, borderWidthSelected: 0, color: { background: "#293748", border: "#293748", highlight: { background: "#D9E6A5", border: "#D9E6A5" }, hover: { background: "#203849", border: "#203849" } }, font: { color: "#F2EBDD", face: "Plus Jakarta Sans", bold: true } }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: r.label, arrows: "to", smooth: false, dashes: false, color: { color: "#E88F9B" }, font: { color: "#B6B5B0", size: 11, background: "#222C3B", strokeWidth: 0 }, width: 2.5 }; }));
         w._net = new vis.Network(container, { nodes: nodes, edges: edges }, { layout: { improvedLayout: true }, physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true, tooltipDelay: 120 } });
         return;
       } catch (e) {}
@@ -233,7 +235,7 @@ RENDERERS.reconstruct = function () {
   var viz = el("div", "viz");
   viz.innerHTML = "<h4>Reconstruct - rebuild the map from memory</h4>" +
     "<p class='small muted' style='margin-top:0'>Concept mapping is strongest when you actively construct the connections. Match the hidden relationships below or toggle the map labels to check your recall.</p>";
-  var container = el("div"); container.style.cssText = "width:100%;height:300px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:12px";
+  var container = el("div"); container.style.cssText = "width:100%;height:300px;background:var(--surface-2);border:none;border-radius:0";
   viz.appendChild(container);
   var check = el("button", "btn secondary sm", "Hide labels to rebuild"); check.style.marginTop = "12px";
   viz.appendChild(check);
@@ -248,9 +250,9 @@ RENDERERS.reconstruct = function () {
     if (window.vis && vis.Network) {
       try {
         var nodes = new vis.DataSet(concepts.map(function (c, idx) {
-          return { id: c.id, label: labels ? c.name : ("Node " + (idx + 1)), shape: "box", borderWidth: 2, color: { background: labels ? "#233C2B" : "#382422", border: labels ? "#6DA85B" : "#DF7F85" }, font: { color: "#E6EDE2", bold: true } };
+          return { id: c.id, label: labels ? c.name : ("Node " + (idx + 1)), shape: "box", shapeProperties: { borderRadius: 0 }, borderWidth: 0, borderWidthSelected: 0, color: { background: labels ? "#293748" : "#43242F", border: labels ? "#293748" : "#43242F" }, font: { color: "#F2EBDD", bold: true } };
         }));
-        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "?", arrows: "to", color: { color: "#E8BE5E" }, font: { color: "#ADC2AD", size: 11, background: "#1C3123" }, width: 2 }; }));
+        var edges = new vis.DataSet(rels.map(function (r) { return { from: r.from, to: r.to, label: labels ? r.label : "?", arrows: "to", smooth: false, dashes: false, color: { color: "#E88F9B" }, font: { color: "#B6B5B0", size: 11, background: "#222C3B", strokeWidth: 0 }, width: 2.5 }; }));
         if (container._net) container._net.destroy();
         container._net = new vis.Network(container, { nodes: nodes, edges: edges }, { physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000 } }, interaction: { hover: true } });
         return;
@@ -300,7 +302,7 @@ RENDERERS.reconstruct = function () {
       selects.forEach(function (item) {
         var ok = item.sel.value === item.expected;
         if (ok) correct++;
-        item.sel.style.borderColor = ok ? "var(--good)" : "var(--bad)";
+        item.sel.style.background = ok ? "var(--tint-mint)" : "var(--tint-bad)";
       });
       var pct = Math.round((correct / selects.length) * 100);
       var passed = pct >= 60;
@@ -329,7 +331,7 @@ RENDERERS.concepts = function () {
   var list = el("div", "grid two"); list.style.marginTop = "8px";
   (T.concepts || []).forEach(function (c) {
     var d = el("details");
-    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 14px";
+    d.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px 14px";
     d.innerHTML = "<summary style='cursor:pointer;font-weight:700'>" + esc(c.name) + '</summary><div class="small muted" style="margin-top:8px">' + esc(c.def) + "</div>";
     list.appendChild(d);
   });
@@ -361,7 +363,7 @@ RENDERERS.retrieve = function () {
   var cards = el("div", "grid two"); cards.style.marginTop = "10px";
   (T.concepts || []).slice(0, 6).forEach(function (c) {
     var card = el("div");
-    card.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;min-height:96px";
+    card.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:14px 16px;cursor:pointer;min-height:96px";
     card.innerHTML = "<strong>" + esc(c.name) + '</strong><div class="small muted" style="margin-top:8px">Click to reveal definition</div><div class="small" style="margin-top:8px;display:none">' + esc(c.def) + "</div>";
     card.addEventListener("click", function () {
       w._demonstrated = true;
@@ -439,8 +441,8 @@ RENDERERS.worked = function () {
   var list = el("div", "grid"); list.style.marginTop = "8px";
   (T.worked || []).forEach(function (s, i) {
     var d = el("div");
-    d.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 15px;display:flex;gap:12px;align-items:flex-start";
-    d.innerHTML = '<div style="flex:0 0 28px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--gold);border:2px solid var(--border);font-weight:700;font-size:.82rem;color:#031B19">' + (i + 1) + "</div>" +
+    d.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px 15px;display:flex;gap:12px;align-items:flex-start";
+    d.innerHTML = '<div style="flex:0 0 28px;width:28px;height:28px;border-radius:0;display:grid;place-items:center;background:var(--gold);border:none;font-weight:700;font-size:.82rem;color:#20283A">' + (i + 1) + "</div>" +
       "<div><strong>" + esc(s.t) + '</strong><div class="small muted">' + esc(s.d) + "</div></div>";
     list.appendChild(d);
   });
@@ -456,7 +458,7 @@ RENDERERS.guide = function () {
   viz.appendChild(host);
   (T.guide || []).forEach(function (it) {
     var box = el("div");
-    box.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:12px 15px";
+    box.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:12px 15px";
     box.innerHTML = '<div style="font-weight:700;margin-bottom:8px">' + esc(it.q) + "</div>";
     var inp = el("input"); inp.type = "text"; inp.placeholder = "Your answer"; box.appendChild(inp);
     var btn = el("button", "btn secondary sm", "Check"); btn.style.marginTop = "8px";
@@ -481,7 +483,7 @@ RENDERERS.hint = function () {
   var h = T.hint || { question: "Attempt the question, then reveal a hint if stuck.", hints: [], keywords: [], answerHtml: "" };
   viz.innerHTML = "<h4>Hint system - help when you are stuck</h4><p class='small muted' style='margin-top:0'>Attempt first, then reveal a hint only if needed. The aim is independence.</p>";
   var box = el("div");
-  box.style.cssText = "background:var(--surface-2);border:2px solid var(--border);border-radius:12px;padding:14px 16px";
+  box.style.cssText = "background:var(--surface-2);border:none;border-radius:0;padding:14px 16px";
   box.innerHTML = '<div style="font-weight:700">' + esc(h.question) + "</div>";
   var ta = el("textarea"); ta.placeholder = "Your explanation ..."; ta.style.marginTop = "10px"; box.appendChild(ta);
   var row = el("div", "row"); row.style.marginTop = "10px";
@@ -638,8 +640,8 @@ RENDERERS.mastery = function () {
     try {
       if (window.Chart) new Chart(canvas, {
         type: "bar",
-        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#6DA85B" : "#4D8043"; }), borderColor: "#3A5D44", borderWidth: 1.5 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#E6EDE2", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(173,194,173,.14)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#E6EDE2" }, grid: { color: "rgba(173,194,173,.14)" } } } }
+        data: { labels: labels, datasets: [{ label: "Mastery %", data: data, backgroundColor: data.map(function (v) { return v >= 60 ? "#83C69A" : "#829A75"; }), borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#F2EBDD", maxRotation: 60, minRotation: 40 }, grid: { color: "rgba(182, 181, 176, 0.16)" } }, y: { beginAtZero: true, max: 100, ticks: { color: "#F2EBDD" }, grid: { color: "rgba(182, 181, 176, 0.16)" } } } }
       });
     } catch (e) {}
     (T.concepts || []).forEach(function (c) {
@@ -670,7 +672,7 @@ RENDERERS.plan = function () {
     var day = Math.min(days, Math.floor(i / perDay) + 1);
     var m = p.mastery[c.id] || 0;
     var priority = m < 40 ? "High" : (m < 70 ? "Medium" : "Low");
-    var pColor = priority === "High" ? "var(--bad)" : (priority === "Medium" ? "var(--warn)" : "var(--good)");
+    var pColor = priority === "High" ? "var(--coral)" : (priority === "Medium" ? "var(--warn)" : "var(--good)");
     var row = el("div", "plan-row"); row.style.padding = "12px 14px";
     row.innerHTML = '<div class="num" style="flex:0 0 58px;width:58px;font-size:.76rem">Day ' + day + "</div>" +
       '<div class="body"><div class="ttl">' + esc(c.name) + '</div>' +
@@ -731,7 +733,7 @@ function buildGame() {
   var g = T.game || { title: "Interactive simulation", goal: "Adjust the variables.", kind: "limiting", target: 0, unit: "score", sliders: [] };
   viz.innerHTML = "<h4>Experiment - " + esc(g.title) + "</h4><p class='small muted' style='margin-top:0'>" + esc(g.goal) + "</p>";
   var canvas = el("canvas");
-  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#1F3B27,#122217);border-radius:12px;border:2px solid var(--border)";
+  canvas.style.cssText = "width:100%;height:300px;display:block;background:linear-gradient(#293D43,#141822);border-radius:0;border:none";
   viz.appendChild(canvas);
   var sliders = el("div");
   sliders.style.cssText = "display:grid;gap:10px;margin-top:12px";
@@ -794,30 +796,28 @@ function buildGame() {
     var sc = score(v);
     var slidersArr = g.sliders || [];
     var barW = Math.min(72, (cw - 60) / Math.max(1, slidersArr.length) - 12);
-    var barColors = ["#6DA85B", "#5B9F97", "#E8BE5E"];
+    var barColors = ["#D9E6A5", "#A9C8D5", "#E88F9B"];
     slidersArr.forEach(function (s, i) {
       var x = 24 + i * (barW + 18), y = 60, bh = 150;
       var val = v[s.id] || 0;
-      ctx.fillStyle = "#172A1D"; ctx.fillRect(x, y, barW, bh);
+      ctx.fillStyle = "#25313A"; ctx.fillRect(x, y, barW, bh);
       ctx.fillStyle = barColors[i % barColors.length]; ctx.fillRect(x, y + bh * (1 - val / 100), barW, bh * (val / 100));
-      ctx.strokeStyle = "#3A5D44"; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, barW, bh);
       if (s.id === "price" && g.kind === "market") {
         var mq = marketQuantities(v, g);
         var ty = y + bh * (1 - mq.eqPrice / 100);
-        ctx.fillStyle = "#D8876D"; ctx.fillRect(x - 4, ty, barW + 8, 4);
+        ctx.fillStyle = "#E84A36"; ctx.fillRect(x - 4, ty, barW + 8, 4);
       }
-      ctx.fillStyle = "#E6EDE2"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#F2EBDD"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "center";
       ctx.fillText(s.label, x + barW / 2, y - 8);
       ctx.fillText(Math.round(val), x + barW / 2, y + bh + 16);
     });
-    ctx.fillStyle = "#E8BE5E"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "#E8C547"; ctx.font = "700 34px Fredoka, sans-serif"; ctx.textAlign = "center";
     ctx.fillText(sc + "%", cw / 2, h - 38);
-    ctx.fillStyle = "#ADC2AD"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
+    ctx.fillStyle = "#B6B5B0"; ctx.font = "600 12px Plus Jakarta Sans, sans-serif";
     ctx.fillText(g.unit || "score", cw / 2, h - 18);
-    ctx.fillStyle = "#172A1D"; ctx.fillRect(24, 24, cw - 48, 12);
-    ctx.fillStyle = "#72C26D"; ctx.fillRect(24, 24, (cw - 48) * Math.min(1, growth / 100), 12);
-    ctx.strokeStyle = "#3A5D44"; ctx.lineWidth = 1.5; ctx.strokeRect(24, 24, cw - 48, 12);
-    ctx.fillStyle = "#E6EDE2"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
+    ctx.fillStyle = "#25313A"; ctx.fillRect(24, 24, cw - 48, 12);
+    ctx.fillStyle = "#83C69A"; ctx.fillRect(24, 24, (cw - 48) * Math.min(1, growth / 100), 12);
+    ctx.fillStyle = "#F2EBDD"; ctx.font = "700 11px Plus Jakarta Sans, sans-serif"; ctx.textAlign = "left";
     ctx.fillText("Session Progress", 24, 18);
   }
 
