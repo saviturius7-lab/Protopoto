@@ -1,10 +1,37 @@
 # Unlocked — Adaptive Learning Engine
 
-Unlocked is a browser-based adaptive learning prototype. It combines a deterministic learning interface with local document extraction, lightweight NLP, hybrid retrieval, and evidence-linked quiz drafting.
+> **Unlocked** turns any textbook, dataset, or diagram into an adaptive, visual, and source-grounded learning journey tailored to how each student learns best.
 
-The repository is named **Protopoto**, but the application itself is branded **Unlocked**.
+The repository is named **Protopoto**, and the application is branded **Unlocked**.
 
-This README describes the implementation currently present in the repository. It distinguishes working prototype features from planned work and explains how the browser, Node.js server, Python NLP process, and SQLite database fit together.
+---
+
+## Pitch
+
+Every student learns differently, yet almost all study material arrives as the same static PDF or spreadsheet. **Unlocked** bridges that gap. It pairs a 24-question learner-preference assessment with local multi-modal document extraction, hybrid retrieval, and interactive visualizers to turn raw study files into personalized six-stage learning cycles—complete with page-cited quizzes, concept graphs, and spaced repetition. It runs deterministically out of the box with local Python NLP and SQLite, and optionally layers cloud AI inference on top without lock-in.
+
+## Problem Statement
+
+Modern learning materials are built for distribution, not comprehension. Dense textbooks, scattered slides, and raw datasets deliver the same static wall of content to every student—forcing diverse learners into passive reading instead of active, lasting understanding.
+
+- **What problem are we addressing?** The disconnect between how study material is packaged (static, linear documents) and how people actually learn (through varied entry points, visual intuition, active recall, and spaced practice).
+- **Who faces this problem?** Students, self-learners, and educators who spend hours manually turning dense PDFs, spreadsheets, and diagrams into structured notes, mental models, and reliable practice questions.
+- **Why does it matter?** When study tools ignore how a learner approaches complex material—or rely on unverified summaries—learners mistake familiarity for mastery, lose engagement, and quickly forget what they studied.
+
+## Proposed Solution
+
+**Unlocked** transforms static study files into an adaptive, interactive learning cycle tailored to how each person thinks—combining deterministic learning design, multi-modal extraction, and strictly source-grounded retrieval.
+
+- **In simple terms:** A learner completes a short preference assessment, uploads their study materials (PDFs, spreadsheets, images, or notes), and **Unlocked** organizes the material into concept maps, interactive simulations, evidence-cited quizzes, and spaced-repetition flashcards across a six-stage learning cycle.
+- **How it addresses the problem:**
+  1. **Adapts the path, never the depth:** Eight learner archetypes shape *how* and *in what order* a topic is introduced while ensuring every learner completes all core activities required for mastery.
+  2. **Turns passive files into active knowledge:** Extracts text, tables, and visual stats from uploaded files to build editable concepts, relationships, charts, and page-cited quiz drafts.
+  3. **Closes the retention loop:** Reinforces long-term memory through SM-2 spaced repetition, progressive hints, and mastery tracking.
+- **What makes it different?** Unlike opaque AI chat wrappers, **Unlocked** is deterministic at its core—running document chunking, NLP extraction, BM25 + hashed-vector hybrid search, and personalization locally on SQLite—while keeping optional LLM/vision/image-generation upgrades behind server-side fallback routes.
+
+---
+
+This README describes the implementation currently present in the repository, distinguishing working prototype features from planned work and explaining how the browser, Node.js server, Python NLP engine, and SQLite database fit together.
 
 ## 1. What the project does
 
